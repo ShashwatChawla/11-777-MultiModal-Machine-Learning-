@@ -1,0 +1,57 @@
+Meeting notes: 1
+
+Direction: 
+1. Good to setup baselines. Helps us understand
+
+2. Lidar modality: Quite reliable and accurate. 
+
+3. Really look into challenging cases where we really need multi-modal
+
+
+4. Benchmark these base lines in these challenging environments. 
+
+
+5. CVPR paper. Benchmarked a lot of multimodal data in Real-world trajectory and TartanAir trajectory 
+
+6. For the base-lines. 
+
+7. Learning-based Lidar methods for Odometry. LO-Net(code not open-sourced).
+- They take 2 consecutive lidar frames. Predicts masks, masks out dynamic obstacles, predicts surface normals, predicts pose b/w two frames. They all do eval on KITTI (they train on KITTI)
+
+8. Efficient LO-Net, TransLO (transformer network): All train on KITTI and benchmark on KITTI
+
+9. Community for Lidar-based Odometry in sparse. Deep-LO (doesn't cite LONet)
+
+10. Having some versions of LVO on the dataset we have not published (TartanAir v2) gives us an advantage over others. 
+
+11. Not a lot of papers on this, so easy to publish. 
+
+12. Technically two ways: 3D convolutions or projecting to two different views. 
+
+13. Wenshen: Few high-level design choices. 
+	1 Hypothesis: Whether Early fusion is beneficial 
+	- Test different Architectures.
+	2. We fuse features. Contactinate the x,y,z and r,g, b and see how the model performs. 
+	3. Good generalization ability. Whether it helps in accuracy and robustness. (2 most imp in SLAM odometry)
+	4. It helps in degredatation. Depends a lot on our testing dataset. (challening enough). 
+	5. Datasets for benchmarks: KITTI is definitely not a good one. 
+		-> We have synthetic challenging trajectories.  
+		-> Shibo ICCV2023 SLAM :Knows real-world challenging environment.
+
+14. It's good to set up the pipeline. We need it for model training. 
+
+15. 1st thing: Evaluate the baselines on what they are evaluated. 
+
+16. How to setup the pipeline: 
+
+17. Lidar will help w/t more accurate depth estimation. It might help for two odometry. In IMage frame: Find optical flow. 
+
+18. Ways for fusing: 
+	1. Test: Lidar flow network will perform
+	2. Intermediate Fusion: Fuse lidar optical flow and image flow
+	3. You can intermediate features: Self-supervised. Cross-Attention
+	:::: Test all 3 w/t same supervision
+	 
+
+
+#Cloud-infra to setup PSC
