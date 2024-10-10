@@ -1,0 +1,41 @@
+PSC CMDs:
+
+Login: ssh schawla1@bridges2.psc.edu
+
+Project Dir: cd $PROJECT/
+
+
+Shared Folder:
+	/ocean/projects/cis220039p/shared/singularity/
+
+
+
+Getting GPU Instances
+	interact -gpu -t 08:00:00
+		Requests a single GPU node for 8 hrs	
+	
+	srun -p GPU-small --gres=gpu:v100-32:2 -t 8:00:00 --pty bash 
+		upto 2 GPUs for upto 8 hrs
+
+	srun -p GPU-shared --gres=gpu:v100-32:4 -t 48:00:00 --pty bash 
+		upto 4 GPUs for upto 48 hrs
+		
+	srun -p GPU --gres=gpu:v100-32:8 -t 48:00:00 --pty bash 
+		upto 8 GPUs for upto 48 hrs
+
+
+Singularity Image:
+	/ocean/projects/cis220039p/shared/singularity/noeticcuda11.sif
+	
+Building Image(login w/t andrew): 
+	singularity build --docker-login noeticcuda12.sif docker://airlab-storage.andrew.cmu.edu:5001/basti/hello-world:latest
+
+
+Off-the-shelf: 
+	singularity build noeticcuda12.sif docker://amigoshan/noeticcuda12:latest
+	
+		
+
+Running Singularity Image:
+	$ singularity instance start --nv <image.sif> <instance-name>
+	$ singularity run --nv instance://venv
