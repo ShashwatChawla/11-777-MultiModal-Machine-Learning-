@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import math
 
 class PatchEmbedding(nn.Module):
     '''
@@ -24,21 +24,15 @@ class PatchEmbedding(nn.Module):
 
 
 class PositionalEncoding(nn.Module):
-    '''
-    Positional Encoding class to add positional information to the token embeddings
-    '''
     def __init__(self, embed_dim, n_patches, dropout=0.1):
         super(PositionalEncoding, self).__init__()
         self.dropout = nn.Dropout(p=dropout)
-        
-        # Create positional encodings using sine and cosine
-        position = torch.arange(0, n_patches, dtype=torch.float).unsqueeze(1)
+        n_tokens = n_patches + 1  # Add 1 for the class token
+        position = torch.arange(0, n_tokens, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * (-math.log(10000.0) / embed_dim))
-        
-        pe = torch.zeros(n_patches, embed_dim)
-        pe[:, 0::2] = torch.sin(position * div_term)  # Apply sine to even indices
-        pe[:, 1::2] = torch.cos(position * div_term)  # Apply cosine to odd indices
-        
+        pe = torch.zeros(n_tokens, embed_dim)
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
         pe = pe.unsqueeze(0)  # Add batch dimension
         self.register_buffer('positional_encoding', pe)
 
