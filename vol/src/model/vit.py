@@ -60,7 +60,7 @@ class TransformerDecoderBlock(nn.Module):
 
 
 class VisionTransformer(nn.Module):
-    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768, num_heads=12, num_layers=12, mlp_dim=3072, num_classes=1000, dropout=0.1):
+    def __init__(self, img_size=224, patch_size=16, in_channels=3, embed_dim=768, num_heads=12, num_layers=12, mlp_dim=3072, out_dim=1024, dropout=0.1):
         super(VisionTransformer, self).__init__()
         self.patch_embedding = PatchEmbedding(img_size, patch_size, in_channels, embed_dim)
         self.positional_encoding = PositionalEncoding(embed_dim, self.patch_embedding.n_patches, dropout)
@@ -70,7 +70,7 @@ class VisionTransformer(nn.Module):
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))  # CLS token
         self.mlp_head = nn.Sequential(
             nn.LayerNorm(embed_dim),
-            nn.Linear(embed_dim, num_classes)
+            nn.Linear(embed_dim, out_dim)
         )
 
     def forward(self, x):
