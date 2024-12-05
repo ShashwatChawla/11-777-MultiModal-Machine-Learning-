@@ -1,5 +1,6 @@
 import tartanair as ta
 import numpy as np
+import torch
 import cv2
 
 visualize = False
@@ -9,6 +10,13 @@ import os
 from os.path import join
 
 _CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
+
+INTRINSICS = torch.tensor(
+        [[320, 0, 320],
+        [0, 320, 240],
+        [0, 0, 1]]
+
+)
 
 
 def vispcd(pc_np, vis_size=(1920, 480), o3d_cam=None):
@@ -146,7 +154,7 @@ modalities = ['image', 'pose', 'lidar']
 camnames = ['lcam_front']
 
 # Specify the dataloader parameters.
-new_image_shape_hw = [640, 640] # If None, no resizing is performed. If a value is passed, then the image is resized to this shape.
+new_image_shape_hw = None # If None, no resizing is performed. If a value is passed, then the image is resized to this shape.
 subset_framenum = 10 # This is the number of frames in a subset. Notice that this is an upper bound on the batch size. Ideally, make this number large to utilize your RAM efficiently. Information about the allocated memory will be provided in the console.
 seq_length = {'image': 2, 'pose': 2, 'lidar': 2} # This is the length of the data-sequences. For example, if the sequence length is 2, then the dataloader will load pairs of images.
 seq_stride = 1 # This is the stride between the data-sequences. For example, if the sequence length is 2 and the stride is 1, then the dataloader will load pairs of images [0,1], [1,2], [2,3], etc. If the stride is 2, then the dataloader will load pairs of images [0,1], [2,3], [4,5], etc.
@@ -155,51 +163,60 @@ batch_size = 1 # This is the number of data-sequences in a mini-batch.
 num_workers = 4 # This is the number of workers to use for loading the data.
 shuffle = False # Whether to shuffle the data. Let's set this to False for now, so that we can see the data loading in a nice video. Yes it is nice don't argue with me please. Just look at it! So nice. :)
 
-# Create a dataloader object.
-dataloader = ta.dataloader(env = envs,
-            difficulty = difficulties,
-            trajectory_id = trajectory_ids,
-            modality = modalities,
-            camera_name = camnames,
-            new_image_shape_hw = new_image_shape_hw,
-            seq_length = seq_length,
-            subset_framenum = subset_framenum,
-            seq_stride = seq_stride,
-            frame_skip = frame_skip,
-            batch_size = batch_size,
-            num_workers = num_workers,
-            shuffle = shuffle,
-            verbose = True)
+def get_dataloader():
+    # Create a dataloader object.
+    dataloader = ta.dataloader(env = envs,
+                difficulty = difficulties,
+                trajectory_id = trajectory_ids,
+                modality = modalities,
+                camera_name = camnames,
+                # new_image_shape_hw = new_image_shape_hw,
+                seq_length = seq_length,
+                subset_framenum = subset_framenum,
+                seq_stride = seq_stride,
+                frame_skip = frame_skip,
+                batch_size = batch_size,
+                num_workers = num_workers,
+                shuffle = shuffle,
+                verbose = True)
 
-print("Dataloader created.")
+    print("Dataloader created.")
 
-# Iterate over the batches.
-for i in range(100):
-    # Get the next batch.
-    batch = dataloader.load_sample()
-    # Visualize some images.
-    # The shape of an image batch is (B, S, H, W, C), where B is the batch size, S is the sequence length, H is the height, W is the width, and C is the number of channels.
+    return dataloader
 
-    print("Batch number: {}".format(i+1), "Loaded {} samples so far.".format((i+1) * batch_size))
+def main():
+    # Create a dataloader object.
+    dataloader = get_dataloader()
 
-    # breakpoint()
+    # Iterate over the batches.
+    for i in range(100):
+        # Get the next batch.
+        batch = dataloader.load_sample()
+        # Visualize some images.
+        # The shape of an image batch is (B, S, H, W, C), where B is the batch size, S is the sequence length, H is the height, W is the width, and C is the number of channels.
 
-    for b in range(batch_size):
+        print("Batch number: {}".format(i+1), "Loaded {} samples so far.".format((i+1) * batch_size))
 
-        img0 = batch["rgb_lcam_front"][0][0]
+        for b in range(batch_size):
 
-        lidar0 = batch['lidar'][0][0]
+            img0 = batch["rgb_lcam_front"][0][0]
 
-        # breakpoint()
-        # lidarvis = vispcd(lidar0, vis_size=(640, 640), o3d_cam=lidarcam)
-        # breakpoint()
+            lidar0 = batch['lidar'][0][0]
 
-        # disp0 = cv2.vconcat((img0.numpy(), lidarvis))
-        # if visualize:
-        #     cv2.imshow('img', disp0)
-        #     cv2.waitKey(1)
+            # breakpoint()
+            # lidarvis = vispcd(lidar0, vis_size=(640, 640), o3d_cam=lidarcam)
+            # breakpoint()
 
-    # print("  Pose: ", pose[0][0])
-    # print("  IMU: ", imu[0][0])
+            # disp0 = cv2.vconcat((img0.numpy(), lidarvis))
+            # if visualize:
+            #     cv2.imshow('img', disp0)
+            #     cv2.waitKey(1)
 
-dataloader.stop_cachers()
+        # print("  Pose: ", pose[0][0])
+        # print("  IMU: ", imu[0][0])
+
+    dataloader.stop_cachers()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,5 +1,10 @@
+import sys
+
+sys.path.append('/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src')
+
 import numpy as np
-from flow_projection_model import lidarToCamProjectionBatch, fuseInputsBatch
+from flow_projection_model import lidarToCamProjectionBatch, fuseInputsBatch 
+from dataloader.dataloader import get_dataloader, INTRINSICS
 
 def lidarToCamProjectionBatch():
 
@@ -15,11 +20,10 @@ def lidarToCamProjectionBatch():
     T_lidar_to_camera = np.eye(4)
 
     # Camera intrinsic matrix
-    K = np.array([
-        [500, 0, W / 2],  # fx, 0, cx
-        [0, 500, H / 2],  # 0, fy, cy
-        [0, 0, 1]         # 0, 0, 1
-    ])
+    K = INTRINSICS
+
+    dataloader = get_dataloader()
+    sample = dataloader.load_sample()
 
     # Get output
     depth_maps, valid_indices = lidarToCamProjectionBatch(lidar_pts_batch, T_lidar_to_camera, K, H, W)
@@ -39,6 +43,8 @@ def test_fuseInputsBatch():
     B = 2  # Batch size
     N = 10  # Number of lidar points per batch
     H, W = 64, 64  # Image dimensions
+
+    breakpoint()
 
     # Generate synthetic data
     lidar_seq_batch = np.random.rand(B, N, 3, 2).astype(np.float32)  # Random lidar points
@@ -70,4 +76,4 @@ def test_fuseInputsBatch():
 
 # Run the test
 if __name__ == "__main__":
-    test_fuseInputsBatch()
+    lidarToCamProjectionBatch()
