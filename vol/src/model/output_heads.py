@@ -6,21 +6,29 @@ import torch.nn.functional as F
 class RotationHead(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(RotationHead, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
-
+        # 3 Layer FC w/t ReLU activation
+        self.rotation_head = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(), 
+            nn.Linear(hidden_size, hidden_size // 4), 
+            nn.ReLU(),
+            nn.Linear(hidden_size // 4, output_size)
+        )
+        
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        return self.rotation_head(x)
 
 class TranslationHead(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
         super(TranslationHead, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, output_size)
+        # 3 Layer FC w/t ReLU activation
+        self.translation_head = nn.Sequential(
+            nn.Linear(input_size, hidden_size),
+            nn.ReLU(), 
+            nn.Linear(hidden_size, hidden_size // 4), 
+            nn.ReLU(),
+            nn.Linear(hidden_size // 4, output_size)
+        )
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return x
+        return self.translation_head(x)
