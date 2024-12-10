@@ -1,13 +1,16 @@
+import sys
+sys.path.append('/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src')
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import sys
-sys.path.append('/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src')
-
 from model.flow.gmflow.gmflow.gmflow import GMFlow
 from model.output_heads import RotationHead, TranslationHead
 from model.vit import VisionTransformer
+from configs.base_config import BaseConfig
+from dataloader.dataloader import get_dataloader, process_data
+
 
 class VOLNet(nn.Module):
     def __init__(self):
@@ -23,23 +26,41 @@ class VOLNet(nn.Module):
             num_head=1
         )
 
-        self.vit = VisionTransformer()
+        self.vit = VisionTransformer(
+            img_size=640,
+            patch_size=16,
+            in_channels=14,
+            embed_dim=768,
+            num_heads=12,
+            num_layers=12,
+            mlp_dim=3072,
+            out_dim=1024,
+            dropout=0.1
+        )
 
         self.rotation_head = RotationHead(1024, 2048, 4)
         self.translation_head = TranslationHead(1024, 2048, 3)
 
     def forward(self, x):
-        img1 = x["img1"]
-        img2 = x["img2"]
+        img1 = x["images"][:, 0]    # retrieve the first image
+        img2 = x["images"][:, 1]    # retrieve the second image
 
-        lidar1 = x["lidar1"]
-        lidar2 = x["lidar2"]
+        lidar1 = x["pointmaps"][:, 0]     # retrieve the first lidar pointmap
+        lidar2 = x["pointmaps"][:, 1]     # retrieve the second lidar pointmap
 
         # Flow model
-        flow = self.flow_model(img1, img2)
+        flow_output = self.flow_model(img1, img2, attn_splits_list = [2],
+                                            corr_radius_list = [-1],
+                                            prop_radius_list = [-1], 
+                                            pred_bidir_flow  =  False)
+
+        flow = flow_output['flow_preds'][0]     # retrieve the forward flow
 
         # Append flow + lidar
-        fused_data = fuseInputsBatch(lidar1, lidar2, flow)
+        fused_data = torch.cat([flow, lidar1, lidar2], dim=1)
+
+        # Append original image
+        fused_data = torch.cat([fused_data, img1, img2], dim=1)
 
         # Vision Transformer
         vit_output = self.vit(fused_data)
@@ -48,18 +69,22 @@ class VOLNet(nn.Module):
         rotation = self.rotation_head(vit_output)
         translation = self.translation_head(vit_output)
 
-        return rotation, translation
-        pass
+        return {"rotation": rotation, "translation": translation}
+
 
 # Example usage
 if __name__ == "__main__":
-    net = VOLNet(input_size=768, hidden_size=512, output_size=3)
-    dummy_data = {
-        "img1": torch.randn(8, 3, 224, 224),
-        "img2": torch.randn(8, 3, 224, 224),
-        "lidar1": torch.randn(8, 3, 1024),
-        "lidar2": torch.randn(8, 3, 1024)
-    }
-    rotation, translation = net(dummy_data)
-    print(f"Rotation output shape: {rotation.shape}")  # Should output (8, 3)
-    print(f"Translation output shape: {translation.shape}")  # Should output (8, 3)
+    net = VOLNet()
+
+    # Create a config object.
+    config = BaseConfig()
+
+    # Create a dataloader object.
+    dataloader = get_dataloader(config)
+
+    data = dataloader.load_sample()
+    data = process_data(data)
+
+    rotation, translation = net(data)
+    print(f"Rotation output shape: {rotation.shape}")  # Should output (B, 4)
+    print(f"Translation output shape: {translation.shape}")  # Should output (B, 3)

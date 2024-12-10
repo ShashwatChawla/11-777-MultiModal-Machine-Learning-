@@ -105,8 +105,8 @@ if not os.path.exists(out_dir):
     os.makedirs(out_dir)
 
 # Load images
-img1_path = '/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src/dataloader/data/coalmine/Data_easy/P000/image_lcam_front/000000_lcam_front.png'
-img2_path = '/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src/dataloader/data/coalmine/Data_easy/P000/image_lcam_front/000001_lcam_front.png'
+img1_path = '/ocean/projects/cis220039p/pkachana/projects/data/coalmine/Data_easy/P000/image_lcam_front/000000_lcam_front.png'
+img2_path = '/ocean/projects/cis220039p/pkachana/projects/data/coalmine/Data_easy/P000/image_lcam_front/000001_lcam_front.png'
 img1 = cv2.imread(img1_path)
 img2 = cv2.imread(img2_path)
 

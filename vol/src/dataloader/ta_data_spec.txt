@@ -1,4 +1,4 @@
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000000
 000001
 000002
@@ -19,7 +19,7 @@ CoalMine\Data_easy\P005 20
 000017
 000018
 000019
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000020
 000021
 000022
@@ -40,7 +40,7 @@ CoalMine\Data_easy\P005 20
 000037
 000038
 000039
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000040
 000041
 000042
@@ -61,7 +61,7 @@ CoalMine\Data_easy\P005 20
 000057
 000058
 000059
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000060
 000061
 000062
@@ -82,7 +82,7 @@ CoalMine\Data_easy\P005 20
 000077
 000078
 000079
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000080
 000081
 000082
@@ -103,7 +103,7 @@ CoalMine\Data_easy\P005 20
 000097
 000098
 000099
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000100
 000101
 000102
@@ -124,7 +124,7 @@ CoalMine\Data_easy\P005 20
 000117
 000118
 000119
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000120
 000121
 000122
@@ -145,7 +145,7 @@ CoalMine\Data_easy\P005 20
 000137
 000138
 000139
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000140
 000141
 000142
@@ -166,7 +166,7 @@ CoalMine\Data_easy\P005 20
 000157
 000158
 000159
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000160
 000161
 000162
@@ -187,7 +187,7 @@ CoalMine\Data_easy\P005 20
 000177
 000178
 000179
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000180
 000181
 000182
@@ -208,7 +208,7 @@ CoalMine\Data_easy\P005 20
 000197
 000198
 000199
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000200
 000201
 000202
@@ -229,7 +229,7 @@ CoalMine\Data_easy\P005 20
 000217
 000218
 000219
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000220
 000221
 000222
@@ -250,7 +250,7 @@ CoalMine\Data_easy\P005 20
 000237
 000238
 000239
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000240
 000241
 000242
@@ -271,7 +271,7 @@ CoalMine\Data_easy\P005 20
 000257
 000258
 000259
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000260
 000261
 000262
@@ -292,7 +292,7 @@ CoalMine\Data_easy\P005 20
 000277
 000278
 000279
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000280
 000281
 000282
@@ -313,7 +313,7 @@ CoalMine\Data_easy\P005 20
 000297
 000298
 000299
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000300
 000301
 000302
@@ -334,7 +334,7 @@ CoalMine\Data_easy\P005 20
 000317
 000318
 000319
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000320
 000321
 000322
@@ -355,7 +355,7 @@ CoalMine\Data_easy\P005 20
 000337
 000338
 000339
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000340
 000341
 000342
@@ -376,7 +376,7 @@ CoalMine\Data_easy\P005 20
 000357
 000358
 000359
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000360
 000361
 000362
@@ -397,7 +397,7 @@ CoalMine\Data_easy\P005 20
 000377
 000378
 000379
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000380
 000381
 000382
@@ -418,7 +418,7 @@ CoalMine\Data_easy\P005 20
 000397
 000398
 000399
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000400
 000401
 000402
@@ -439,7 +439,7 @@ CoalMine\Data_easy\P005 20
 000417
 000418
 000419
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000420
 000421
 000422
@@ -460,7 +460,7 @@ CoalMine\Data_easy\P005 20
 000437
 000438
 000439
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000440
 000441
 000442
@@ -481,7 +481,7 @@ CoalMine\Data_easy\P005 20
 000457
 000458
 000459
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000460
 000461
 000462
@@ -502,7 +502,7 @@ CoalMine\Data_easy\P005 20
 000477
 000478
 000479
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000480
 000481
 000482
@@ -523,7 +523,7 @@ CoalMine\Data_easy\P005 20
 000497
 000498
 000499
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000500
 000501
 000502
@@ -544,7 +544,7 @@ CoalMine\Data_easy\P005 20
 000517
 000518
 000519
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000520
 000521
 000522
@@ -565,7 +565,7 @@ CoalMine\Data_easy\P005 20
 000537
 000538
 000539
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000540
 000541
 000542
@@ -586,7 +586,7 @@ CoalMine\Data_easy\P005 20
 000557
 000558
 000559
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000560
 000561
 000562
@@ -607,7 +607,7 @@ CoalMine\Data_easy\P005 20
 000577
 000578
 000579
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000580
 000581
 000582
@@ -628,7 +628,7 @@ CoalMine\Data_easy\P005 20
 000597
 000598
 000599
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000600
 000601
 000602
@@ -649,7 +649,7 @@ CoalMine\Data_easy\P005 20
 000617
 000618
 000619
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000620
 000621
 000622
@@ -670,7 +670,7 @@ CoalMine\Data_easy\P005 20
 000637
 000638
 000639
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000640
 000641
 000642
@@ -691,7 +691,7 @@ CoalMine\Data_easy\P005 20
 000657
 000658
 000659
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000660
 000661
 000662
@@ -712,7 +712,7 @@ CoalMine\Data_easy\P005 20
 000677
 000678
 000679
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000680
 000681
 000682
@@ -733,7 +733,7 @@ CoalMine\Data_easy\P005 20
 000697
 000698
 000699
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000700
 000701
 000702
@@ -754,7 +754,7 @@ CoalMine\Data_easy\P005 20
 000717
 000718
 000719
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000720
 000721
 000722
@@ -775,7 +775,7 @@ CoalMine\Data_easy\P005 20
 000737
 000738
 000739
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000740
 000741
 000742
@@ -796,7 +796,7 @@ CoalMine\Data_easy\P005 20
 000757
 000758
 000759
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000760
 000761
 000762
@@ -817,7 +817,7 @@ CoalMine\Data_easy\P005 20
 000777
 000778
 000779
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000780
 000781
 000782
@@ -838,7 +838,7 @@ CoalMine\Data_easy\P005 20
 000797
 000798
 000799
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000800
 000801
 000802
@@ -859,7 +859,7 @@ CoalMine\Data_easy\P005 20
 000817
 000818
 000819
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000820
 000821
 000822
@@ -880,7 +880,7 @@ CoalMine\Data_easy\P005 20
 000837
 000838
 000839
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000840
 000841
 000842
@@ -901,7 +901,7 @@ CoalMine\Data_easy\P005 20
 000857
 000858
 000859
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000860
 000861
 000862
@@ -922,7 +922,7 @@ CoalMine\Data_easy\P005 20
 000877
 000878
 000879
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000880
 000881
 000882
@@ -943,7 +943,7 @@ CoalMine\Data_easy\P005 20
 000897
 000898
 000899
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000900
 000901
 000902
@@ -964,7 +964,7 @@ CoalMine\Data_easy\P005 20
 000917
 000918
 000919
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000920
 000921
 000922
@@ -985,7 +985,7 @@ CoalMine\Data_easy\P005 20
 000937
 000938
 000939
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000940
 000941
 000942
@@ -1006,7 +1006,7 @@ CoalMine\Data_easy\P005 20
 000957
 000958
 000959
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000960
 000961
 000962
@@ -1027,7 +1027,7 @@ CoalMine\Data_easy\P005 20
 000977
 000978
 000979
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 000980
 000981
 000982
@@ -1048,7 +1048,7 @@ CoalMine\Data_easy\P005 20
 000997
 000998
 000999
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 001000
 001001
 001002
@@ -1069,7 +1069,7 @@ CoalMine\Data_easy\P005 20
 001017
 001018
 001019
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 001020
 001021
 001022
@@ -1090,7 +1090,7 @@ CoalMine\Data_easy\P005 20
 001037
 001038
 001039
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 001040
 001041
 001042
@@ -1111,7 +1111,7 @@ CoalMine\Data_easy\P005 20
 001057
 001058
 001059
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 001060
 001061
 001062
@@ -1132,7 +1132,7 @@ CoalMine\Data_easy\P005 20
 001077
 001078
 001079
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 20
 001080
 001081
 001082
@@ -1153,7 +1153,7 @@ CoalMine\Data_easy\P005 20
 001097
 001098
 001099
-CoalMine\Data_easy\P005 20
+Office\Data_easy\P005 16
 001100
 001101
 001102
@@ -1170,68 +1170,3 @@ CoalMine\Data_easy\P005 20
 001113
 001114
 001115
-001116
-001117
-001118
-001119
-CoalMine\Data_easy\P005 20
-001120
-001121
-001122
-001123
-001124
-001125
-001126
-001127
-001128
-001129
-001130
-001131
-001132
-001133
-001134
-001135
-001136
-001137
-001138
-001139
-CoalMine\Data_easy\P005 20
-001140
-001141
-001142
-001143
-001144
-001145
-001146
-001147
-001148
-001149
-001150
-001151
-001152
-001153
-001154
-001155
-001156
-001157
-001158
-001159
-CoalMine\Data_easy\P005 18
-001160
-001161
-001162
-001163
-001164
-001165
-001166
-001167
-001168
-001169
-001170
-001171
-001172
-001173
-001174
-001175
-001176
-001177

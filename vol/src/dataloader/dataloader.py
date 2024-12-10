@@ -1,219 +1,237 @@
-import tartanair as ta
+import os
+import sys
+sys.path.append('/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src')
+
 import numpy as np
 import torch
+from scipy.spatial.transform import Rotation as R
 import cv2
+import einops
+import tartanair as ta
 
-visualize = False
+from configs.base_config import BaseConfig
 
-import open3d as o3d
-import os
-from os.path import join
-
-_CURRENT_PATH = os.path.dirname(os.path.realpath(__file__))
 
 INTRINSICS = torch.tensor(
-        [[320, 0, 320],
-        [0, 320, 240],
-        [0, 0, 1]]
+    [[320., 0., 320.],
+    [0., 320., 240.],
+    [0., 0., 1.]]
+)
 
+NED2CAM = np.array(
+    [[0, 1, 0, 0], 
+    [0, 0, 1, 0], 
+    [1, 0, 0, 0], 
+    [0, 0, 0, 1]], dtype=np.float32
 )
 
 
-def vispcd(pc_np, vis_size=(1920, 480), o3d_cam=None):
-    # pcd: numpy array
-    w, h = (1920, 480)  # default o3d window size
+def quat_to_rot(q_poses):
+    translations = q_poses[:, :3]  # Extract translations
+    quaternions = q_poses[:, 3:]  # Extract quaternions
 
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(pc_np)
+    # Convert all quaternions to rotation matrices
+    rotations = R.from_quat(quaternions).as_matrix()
 
-    if o3d_cam:
-        camerafile = o3d_cam
-        w, h = camerafile['w'], camerafile['h']
-        cam = o3d.camera.PinholeCameraParameters()
+    # Create transformation matrices
+    n = translations.shape[0]
+    pose_matrices = np.zeros((n, 4, 4))
+    pose_matrices[:, :3, :3] = rotations
+    pose_matrices[:, :3, 3] = translations
+    pose_matrices[:, 3, 3] = 1
 
-        intr_mat, ext_mat = camerafile['intrinsic'], camerafile['extrinsic']
-        intrinsic = o3d.camera.PinholeCameraIntrinsic(w, h,
-                                                      intr_mat[0, 0], intr_mat[1, 1],
-                                                      intr_mat[0, -1], intr_mat[1, -1])
-        intrinsic.intrinsic_matrix = intr_mat
-        cam.intrinsic = intrinsic
-        cam.extrinsic = ext_mat
-
-    vis = o3d.visualization.Visualizer()
-    vis.create_window(visible=False, width=w, height=h)
-    vis.add_geometry(pcd)
-
-    if o3d_cam:
-        ctr = vis.get_view_control()
-        ctr.convert_from_pinhole_camera_parameters(cam)
-
-    vis.poll_events()
-    img = vis.capture_screen_float_buffer(do_render=True)
-    vis.destroy_window()
-
-    img = np.array(img)
-    img = (img * 255).astype(np.uint8)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-
-    img = cv2.resize(img, vis_size)
-
-    return img
-
-o3d_cam = join(_CURRENT_PATH, 'o3d_camera.npz')
-lidarcam = np.load(o3d_cam)
+    return pose_matrices
 
 
-# Initialize TartanAir.
-tartanair_data_root = '/ocean/projects/cis220039p/shared/tartanair_v2'
-ta.init(tartanair_data_root)
+def rot_to_quat(rot_poses):
+    translations = rot_poses[:, :3, 3]  # Extract translations
+    rotations = rot_poses[:, :3, :3]  # Extract rotations
 
-# Specify the environments, difficulties, and trajectory ids to load.
-# envs = ['ArchVizTinyHouseDay']
+    # Convert all rotation matrices to quaternions
+    quaternions = R.from_matrix(rotations).as_quat()
 
-envs = [
-        # "ShoreCaves",
-        # "AbandonedFactory",
-        # "AbandonedSchool",
-        # "AmericanDiner",
-        # "AmusementPark",
-        # "AncientTowns",
-        # "Antiquity3D",
-        # "Apocalyptic",
-        # "ArchVizTinyHouseDay",
-        # "ArchVizTinyHouseNight",
-        # # "BrushifyMoon", # Seems to be very large and too easy for flow.
-        # "CarWelding",
-        # "CastleFortress",
-        # "ConstructionSite",
-        # "CountryHouse",
-        # "CyberPunkDowntown",
-        # "Cyberpunk",
-        # "DesertGasStation",
-        # "Downtown",
-        # "EndofTheWorld",
-        # "FactoryWeather",
-        # "Fantasy",
-        # "ForestEnv",
-        # "Gascola",
-        # "GothicIsland",
-        # # "GreatMarsh",
-        # "HQWesternSaloon",
-        # "HongKong",
-        # "Hospital",
-        # "House",
-        # "IndustrialHangar",
-        # "JapaneseAlley",
-        # "JapaneseCity",
-        # "MiddleEast",
-        # "ModUrbanCity",
-        # "ModernCityDowntown",
-        # "ModularNeighborhood",
-        # "ModularNeighborhoodIntExt",
-        # "NordicHarbor",
-        # # "Ocean",
-        # "Office",
-        # "OldBrickHouseDay",
-        # "OldBrickHouseNight",
-        # "OldIndustrialCity",
-        # "OldScandinavia",
-        # "OldTownFall",
-        # "OldTownNight",
-        # "OldTownSummer",
-        # "OldTownWinter",
-        # # "PolarSciFi",
-        # "Prison",
-        # "Restaurant",
-        # "RetroOffice",
-        # "Rome",
-        # "Ruins",
-        # "SeasideTown",
-        # # "SeasonalForestAutumn",
-        # "SeasonalForestSpring",
-        # # "SeasonalForestSummerNight",
-        # "SeasonalForestWinter",
-        # # "SeasonalForestWinterNight",
-        # "Sewerage",
-        # "Slaughter",
-        # "SoulCity",
-        # "Supermarket",
-        # "TerrainBlending",
-        # "UrbanConstruction",
-        # "VictorianStreet",
-        # "WaterMillDay",
-        # "WaterMillNight",
-        # "WesternDesertTown",
-        # "AbandonedFactory2",
-        "CoalMine"
-        ]
+    # Create transformation matrices
+    n = translations.shape[0]
+    pose_quats = np.zeros((n, 7))
+    pose_quats[:, :3] = translations
+    pose_quats[:, 3:] = quaternions
 
-difficulties = ['easy']
-trajectory_ids = ['P005']
+    return pose_quats
+    
 
-# Specify the modalities to load.
-modalities = ['image', 'pose', 'lidar']
-camnames = ['lcam_front']
+def ned_to_cam(poses):
+    poses = NED2CAM @ poses @ np.linalg.inv(NED2CAM)
+    return poses
+   
 
-# Specify the dataloader parameters.
-new_image_shape_hw = None # If None, no resizing is performed. If a value is passed, then the image is resized to this shape.
-subset_framenum = 10 # This is the number of frames in a subset. Notice that this is an upper bound on the batch size. Ideally, make this number large to utilize your RAM efficiently. Information about the allocated memory will be provided in the console.
-seq_length = {'image': 2, 'pose': 2, 'lidar': 2} # This is the length of the data-sequences. For example, if the sequence length is 2, then the dataloader will load pairs of images.
-seq_stride = 1 # This is the stride between the data-sequences. For example, if the sequence length is 2 and the stride is 1, then the dataloader will load pairs of images [0,1], [1,2], [2,3], etc. If the stride is 2, then the dataloader will load pairs of images [0,1], [2,3], [4,5], etc.
-frame_skip = 0 # This is the number of frames to skip between each frame. For example, if the frame skip is 2 and the sequence length is 3, then the dataloader will load frames [0, 3, 6], [1, 4, 7], [2, 5, 8], etc.
-batch_size = 1 # This is the number of data-sequences in a mini-batch.
-num_workers = 4 # This is the number of workers to use for loading the data.
-shuffle = False # Whether to shuffle the data. Let's set this to False for now, so that we can see the data loading in a nice video. Yes it is nice don't argue with me please. Just look at it! So nice. :)
+def process_pose(poses) -> torch.Tensor:
+    """
+    Process the pose data.
+    """
 
-def get_dataloader():
-    # Create a dataloader object.
-    dataloader = ta.dataloader(env = envs,
-                difficulty = difficulties,
-                trajectory_id = trajectory_ids,
-                modality = modalities,
-                camera_name = camnames,
-                # new_image_shape_hw = new_image_shape_hw,
-                seq_length = seq_length,
-                subset_framenum = subset_framenum,
-                seq_stride = seq_stride,
-                frame_skip = frame_skip,
-                batch_size = batch_size,
-                num_workers = num_workers,
-                shuffle = shuffle,
-                verbose = True)
+    # Rearrange the poses to move sequences to batch dimension.
+    B, N, _ = poses.shape
+    poses = einops.rearrange(poses, 'b n i -> (b n) i')
+
+    # Convert the poses quaternions to rotation matrices.
+    poses = quat_to_rot(poses)
+
+    # Convert the poses from NED to camera coordinates.
+    poses = ned_to_cam(poses)
+
+    # Rearrange the poses back to the original shape.
+    poses = einops.rearrange(poses, '(b n) i j -> b n i j', b=B, n=N)
+
+    # Convert poses to be in the frame of the first camera.
+    first_pose = poses[:, 0]
+    first_pose_inv = np.linalg.inv(first_pose)
+    first_pose_inv = np.repeat(first_pose_inv[:, np.newaxis], poses.shape[1], axis=1)
+    poses = first_pose_inv @ poses
+
+    # Convert the poses to torch tensors.
+    poses = torch.tensor(poses, dtype=torch.float32)
+
+    return poses
+
+
+def unproject_depth_to_pointmap(batch):
+    B, N, H, W = batch['depths'].shape
+
+    depths = einops.rearrange(batch['depths'], 'b n h w -> (b n) h w')
+    poses = einops.rearrange(batch['poses'], 'b n i j -> (b n) i j')
+
+    # Create the pointmap.
+    pointmaps = torch.zeros((B*N, H, W, 3), dtype=torch.float32)
+
+    # Create the pixel grid.
+    y, x = torch.meshgrid(torch.arange(H), torch.arange(W), indexing='ij')
+    y = y.unsqueeze(0).expand(B*N, -1, -1).float()
+    x = x.unsqueeze(0).expand(B*N, -1, -1).float()
+
+    # Create the pixel coordinates.
+    pixel_coords = torch.stack([x, y, torch.ones_like(x)], dim=-1)
+    pixel_coords = pixel_coords.reshape(-1, 3)
+
+    # Create the camera parameters.
+    cx, cy, fx, fy = INTRINSICS[0, 2], INTRINSICS[1, 2], INTRINSICS[0, 0], INTRINSICS[1, 1]
+    cx = cx.unsqueeze(0).unsqueeze(1).expand(B*N, -1, -1)
+    cy = cy.unsqueeze(0).unsqueeze(1).expand(B*N, -1, -1)
+    fx = fx.unsqueeze(0).unsqueeze(1).expand(B*N, -1, -1)
+    fy = fy.unsqueeze(0).unsqueeze(1).expand(B*N, -1, -1)
+
+    # Compute 3D points.
+    Z = depths
+    X = (x - cx) * Z / fx
+    Y = (y - cy) * Z / fy
+    
+    # Create the camera coordinates.
+    pointmaps = torch.stack([X, Y, Z], dim=-1)
+
+    # Transform to homogeneous coordinates.
+    pointmaps = torch.cat([pointmaps, torch.ones_like(pointmaps[..., :1])], dim=-1)
+    pointmaps = einops.rearrange(pointmaps, '(b n) h w c -> (b n) (h w) c', b=B, n=N) 
+
+    # Transform to world coordinates.
+    pointmaps = (poses @ pointmaps.transpose(1, 2)).transpose(1, 2)
+    pointmaps = pointmaps[..., :3]
+
+    # Reshape back to the original shape.
+    pointmaps = einops.rearrange(pointmaps, '(b n) (h w) c -> b n h w c', b=B, n=N, h=H, w=W)
+
+    return pointmaps
+
+
+def get_dataloader(config, mode='train'):
+    # Initialize TartanAir.
+    ta.init(config.tartanair_data_root)
+
+    if mode == 'train':
+        # Create a train dataloader object.
+        dataloader = ta.dataloader(env = config.train_envs,
+                    difficulty = config.train_difficulties,
+                    trajectory_id = config.train_trajectory_ids,
+                    modality = config.modalities,
+                    camera_name = config.camnames,
+                    # new_image_shape_hw = config.new_image_shape_hw,
+                    seq_length = config.seq_length,
+                    subset_framenum = config.subset_framenum,
+                    seq_stride = config.seq_stride,
+                    frame_skip = config.frame_skip,
+                    batch_size = config.batch_size,
+                    num_workers = config.num_workers,
+                    shuffle = config.shuffle,
+                    verbose = True)
+
+    elif mode == 'val':
+        # Create a val dataloader object.
+        dataloader = ta.dataloader(env = config.val_envs,
+                    difficulty = config.val_difficulties,
+                    trajectory_id = config.val_trajectory_ids,
+                    modality = config.modalities,
+                    camera_name = config.camnames,
+                    # new_image_shape_hw = config.new_image_shape_hw,
+                    seq_length = config.seq_length,
+                    subset_framenum = config.subset_framenum,
+                    seq_stride = config.seq_stride,
+                    frame_skip = config.frame_skip,
+                    batch_size = config.batch_size,
+                    num_workers = config.num_workers,
+                    shuffle = config.shuffle,
+                    verbose = True)
+
 
     print("Dataloader created.")
 
     return dataloader
+  
+
+def process_data(batch):
+    # Process the pose data.
+    batch['poses'] = process_pose(batch['pose_lcam_front'])
+    batch.pop('pose_lcam_front')
+
+    # Save the motion quaternion between frames
+    motions = torch.tensor(rot_to_quat(batch['poses'][:, 1]))  # the first frame should be the identity so second frame pose is the motion
+    batch['rotations'] = motions[:, 3:]
+    batch['translations'] = motions[:, :3]
+
+    # Rename the image, depth, and flow data.
+    batch['images'] = batch.pop('rgb_lcam_front')
+    batch['images'] = batch['images'][..., [2,1,0]]  # convert images from BGR to RGB
+    batch['images'] = batch['images'].permute(0, 1, 4, 2, 3)  # convert images to PyTorch format
+    batch['images'] = batch['images'] / 255.0  # normalize images to [0, 1]
+
+    batch['depths'] = batch.pop('depth_lcam_front')
+    batch['flows'] = batch.pop('flow_lcam_front')
+
+    # Project the depth data to a pointmap.
+    batch['pointmaps'] = unproject_depth_to_pointmap(batch)
+    batch['pointmaps'] = batch['pointmaps'].permute(0, 1, 4, 2, 3)  # convert pointmaps to PyTorch format
+
+    return batch
+
 
 def main():
+    # Create a config object.
+    config = BaseConfig()
+
     # Create a dataloader object.
-    dataloader = get_dataloader()
+    dataloader = get_dataloader(config)
 
     # Iterate over the batches.
     for i in range(100):
         # Get the next batch.
         batch = dataloader.load_sample()
-        # Visualize some images.
-        # The shape of an image batch is (B, S, H, W, C), where B is the batch size, S is the sequence length, H is the height, W is the width, and C is the number of channels.
+        batch = process_data(batch)
 
-        print("Batch number: {}".format(i+1), "Loaded {} samples so far.".format((i+1) * batch_size))
+        for i in range(batch['images'].shape[0]):
+            image = batch['images'][i].numpy()
+            pointmap = batch['pointmaps'][i].numpy()
 
-        for b in range(batch_size):
+            cv2.imwrite('image_{i}.png', cv2.cvtColor(image*255.0, cv2.COLOR_RGB2BGR))
+            # cv2.imwrite(f'pointmap_{i}.npy', (int)((pointmap[i][:,:,2]/pointmap[i][:,:,2].max())*255.0))
 
-            img0 = batch["rgb_lcam_front"][0][0]
-
-            lidar0 = batch['lidar'][0][0]
-
-            # breakpoint()
-            # lidarvis = vispcd(lidar0, vis_size=(640, 640), o3d_cam=lidarcam)
-            # breakpoint()
-
-            # disp0 = cv2.vconcat((img0.numpy(), lidarvis))
-            # if visualize:
-            #     cv2.imshow('img', disp0)
-            #     cv2.waitKey(1)
-
-        # print("  Pose: ", pose[0][0])
-        # print("  IMU: ", imu[0][0])
+        # np.savez(f'batch_{i}.npz', **batch)
 
     dataloader.stop_cachers()
 
