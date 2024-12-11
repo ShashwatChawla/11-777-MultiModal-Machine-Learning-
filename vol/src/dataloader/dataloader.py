@@ -183,17 +183,35 @@ def get_dataloader(config, mode='train'):
     print("Dataloader created.")
 
     return dataloader
+
+
+def resize_data(data, new_shape):
+    new_H, new_W = new_shape
+    B, N, C, H, W = data['images'].shape
+
+    images = data['images']
+    images = einops.rearrange(images, 'b n c h w -> (b n) c h w')
+    images = torch.nn.functional.interpolate(images, size=(new_H, new_W), mode='bilinear', align_corners=False)
+    data['images'] = einops.rearrange(images, '(b n) c h w -> b n c h w', b=B, n=N)
+
+    pointmaps = data['pointmaps']
+    pointmaps = einops.rearrange(pointmaps, 'b n c h w -> (b n) c h w')
+    pointmaps = torch.nn.functional.interpolate(pointmaps, size=(new_H, new_W), mode='nearest')
+    data['pointmaps'] = einops.rearrange(pointmaps, '(b n) c h w -> b n c h w', b=B, n=N)
+
+    return data
+
   
 
-def process_data(batch):
+def process_data(batch, new_size=None, device='cpu'):
     # Process the pose data.
     batch['poses'] = process_pose(batch['pose_lcam_front'])
     batch.pop('pose_lcam_front')
 
     # Save the motion quaternion between frames
     motions = torch.tensor(rot_to_quat(batch['poses'][:, 1]))  # the first frame should be the identity so second frame pose is the motion
-    batch['rotations'] = motions[:, 3:]
-    batch['translations'] = motions[:, :3]
+    batch['rotations'] = motions[:, 3:].float()         # used to compute loss so convert to float
+    batch['translations'] = motions[:, :3].float()      # used to compute loss so convert to float
 
     # Rename the image, depth, and flow data.
     batch['images'] = batch.pop('rgb_lcam_front')
@@ -207,6 +225,16 @@ def process_data(batch):
     # Project the depth data to a pointmap.
     batch['pointmaps'] = unproject_depth_to_pointmap(batch)
     batch['pointmaps'] = batch['pointmaps'].permute(0, 1, 4, 2, 3)  # convert pointmaps to PyTorch format
+    batch.pop('depths')
+
+    if new_size is not None:
+        # Resize the data.
+        batch = resize_data(batch, new_size)
+
+    # Convert the data to the specified device.
+    for key in batch:
+        if isinstance(batch[key], torch.Tensor):
+            batch[key] = batch[key].to(device)
 
     return batch
 

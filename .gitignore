@@ -1,4 +1,12 @@
 *.aux
 *.log
 *.out
-/src/dataloader/data/*
+
+**/ta_data_spec.txt
+
+/vol/src/dataloader/data/*
+/vol/src/checkpoints/*
+/vol/src/wandb
+/vol/src/output
+
+**/__pycache__/

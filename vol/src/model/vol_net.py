@@ -41,7 +41,7 @@ class VOLNet(nn.Module):
         self.rotation_head = RotationHead(1024, 2048, 4)
         self.translation_head = TranslationHead(1024, 2048, 3)
 
-    def forward(self, x):
+    def forward(self, x, return_flow=False):
         img1 = x["images"][:, 0]    # retrieve the first image
         img2 = x["images"][:, 1]    # retrieve the second image
 
@@ -69,7 +69,12 @@ class VOLNet(nn.Module):
         rotation = self.rotation_head(vit_output)
         translation = self.translation_head(vit_output)
 
-        return {"rotation": rotation, "translation": translation}
+        output = {"rotation": rotation, "translation": translation}
+
+        if return_flow:
+            output["flow"] = flow
+        
+        return output
 
 
 # Example usage

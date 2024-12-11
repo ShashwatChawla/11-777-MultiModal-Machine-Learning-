@@ -105,7 +105,7 @@ class BaseConfig:
         self.seq_length = {'image': 2, 'pose': 2, 'depth': 2, 'flow': 2} # This is the length of the data-sequences. For example, if the sequence length is 2, then the dataloader will load pairs of images.
         self.seq_stride = 1 # This is the stride between the data-sequences. For example, if the sequence length is 2 and the stride is 1, then the dataloader will load pairs of images [0,1], [1,2], [2,3], etc. If the stride is 2, then the dataloader will load pairs of images [0,1], [2,3], [4,5], etc.
         self.frame_skip = 0 # This is the number of frames to skip between each frame. For example, if the frame skip is 2 and the sequence length is 3, then the dataloader will load frames [0, 3, 6], [1, 4, 7], [2, 5, 8], etc.
-        self.batch_size = 1 # This is the number of data-sequences in a mini-batch.
+        self.batch_size = 4 # This is the number of data-sequences in a mini-batch.
         self.num_workers = 4 # This is the number of workers to use for loading the data.
         self.shuffle = False # Whether to shuffle the data. Let's set this to False for now, so that we can see the data loading in a nice video. Yes it is nice don't argue with me please. Just look at it! So nice. :)
 
@@ -120,13 +120,17 @@ class BaseConfig:
         ##############################
         ######## TRAIN CONFIGS #######
         ##############################
-        self.num_steps = 10_000
-        self.lr = 1e-4
-        self.weight_decay = 1e-4
-        self.val_freq = 1000
+        self.train_flow = False
 
         self.loss_alpha = 1.0
-        
+
+        self.lr = 1e-4
+        self.weight_decay = 1e-4
+        self.num_steps = 100_000
+
+        self.val_freq = 1000
+        self.val_steps = 100
+
 
         ##############################
         ####### LOGGING CONFIGS ######
@@ -134,4 +138,4 @@ class BaseConfig:
         self.ckpt_save_dir = "/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints"
         self.project_name = 'VOL'
         self.log_freq = 10
-        self.log_steps = 10
+        self.vis_freq = 10
