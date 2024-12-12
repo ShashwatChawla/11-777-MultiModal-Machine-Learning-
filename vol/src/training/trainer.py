@@ -1,5 +1,6 @@
 import time
 import os
+import json
 import sys
 sys.path.append('/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src')
 
@@ -58,21 +59,27 @@ class Trainer():
 
         self.log_freq = self.config.log_freq
         self.vis_freq = self.config.vis_freq
+        self.val_vis_freq = self.config.val_vis_freq
         
         current_time = time.strftime("%Y_%m_%d-%H_%M_%S")
         self.ckpt_save_dir = f"{self.config.ckpt_save_dir}/{current_time}"
         os.makedirs(self.ckpt_save_dir, exist_ok=True)
+
+        config_dict = config.__dict__
+        config_dict['datetime'] = current_time
+        with open(os.path.join(self.ckpt_save_dir, 'config.json'), 'w') as f:
+            json.dump(config_dict, f, indent=4)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         print("Using device: ", self.device)
         self.model.to(self.device)
 
     
-    def train_step(self, data):
+    def train_step(self, data, return_flow=False):
         self.model.train()
         self.optimizer.zero_grad()
 
-        output = self.model(data)
+        output = self.model(data, return_flow=return_flow)
         loss = self.loss_fn(
             output['rotation'], 
             data['rotations'], 
@@ -85,13 +92,13 @@ class Trainer():
         total_loss.backward()
         self.optimizer.step()
 
-        return loss
+        return loss, output
     
     @torch.no_grad()
-    def val_step(self, data):
+    def val_step(self, data, return_flow=False):
         self.model.eval()
 
-        output = self.model(data, return_flow=True)
+        output = self.model(data, return_flow=return_flow)
         loss = self.loss_fn(
             output['rotation'], 
             data['rotations'], 
@@ -112,22 +119,27 @@ class Trainer():
             val_batch = self.val_loader.load_sample()
             val_processed_batch = self.data_process_fn(val_batch, device=self.device)
 
-            val_loss, output = self.val_step(val_processed_batch)
+            return_flow = val_step % self.val_vis_freq == 0
+
+            val_loss, output = self.val_step(val_processed_batch, return_flow=return_flow)
             val_rot_loss += val_loss['rotation_loss']
             val_trans_loss += val_loss['translation_loss']
             val_total_loss += val_loss['total_loss']
 
-            if val_step % self.vis_freq == 0:
+            if val_step % self.val_vis_freq == 0:
                 img1 = val_processed_batch['images'][0][0].cpu().numpy().transpose(1, 2, 0)
                 img2 = val_processed_batch['images'][0][1].cpu().numpy().transpose(1, 2, 0)
                 flow = output['flow'][0].cpu().numpy().transpose(1, 2, 0)
                 flow_img = visflow(flow)
+                gt_flow = val_processed_batch['flows'][0].cpu().numpy().transpose(1, 2, 0)
+                gt_flow_img = visflow(gt_flow)
 
                 self.logger.log({
                     "val_images": [
                         wandb.Image(img1, caption="Image 1"),
                         wandb.Image(img2, caption="Image 2"),
-                        wandb.Image(flow_img, caption="Flow Image")
+                        wandb.Image(flow_img, caption="Pred Flow"),
+                        wandb.Image(gt_flow_img, caption="GT Flow")
                     ]
                 })
 
@@ -149,7 +161,8 @@ class Trainer():
             batch = self.train_loader.load_sample()
             processed_batch = self.data_process_fn(batch, device=self.device)
 
-            loss = self.train_step(processed_batch)
+            return_flow = step % self.vis_freq == 0
+            loss, output = self.train_step(processed_batch, return_flow=return_flow)
 
             # self.scheduler.step()
 
@@ -159,6 +172,21 @@ class Trainer():
                 }
                 for key, value in loss.items():
                     log[key] = value
+                
+                if step % self.vis_freq == 0:
+                    img1 = processed_batch['images'][0][0].detach().cpu().numpy().transpose(1, 2, 0)
+                    img2 = processed_batch['images'][0][1].detach().cpu().numpy().transpose(1, 2, 0)
+                    flow = output['flow'][0].detach().cpu().numpy().transpose(1, 2, 0)
+                    flow_img = visflow(flow)
+                    gt_flow = processed_batch['flows'][0].detach().cpu().numpy().transpose(1, 2, 0)
+                    gt_flow_img = visflow(gt_flow)
+
+                    log["train_images"] = [
+                            wandb.Image(img1, caption="Image 1"),
+                            wandb.Image(img2, caption="Image 2"),
+                            wandb.Image(flow_img, caption="Pred Flow"),
+                            wandb.Image(gt_flow_img, caption="GT Flow")
+                        ]
 
                 self.logger.log(log)
             

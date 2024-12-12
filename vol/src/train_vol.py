@@ -15,13 +15,18 @@ def main():
     train_dataloader = get_dataloader(config, 'train')
     val_dataloader = get_dataloader(config, 'val')
 
-    model = VOLNet()
+    model = VOLNet(config)
 
     if config.load_pretrained_flow:
         flow_checkpoint = config.flow_checkpoint
         flow_checkpoint = torch.load(flow_checkpoint)
         flow_weights = flow_checkpoint['model'] if 'model' in flow_checkpoint else flow_checkpoint
-        model.flow_model.load_state_dict(flow_weights, strict=True)
+        model.flow_net.load_state_dict(flow_weights, strict=True)
+    
+    if config.freeze_flow_net:
+        model.flow_net.eval()
+        for param in model.flow_net.parameters():
+            param.requires_grad = False
     
     trainer = Trainer(
         config=config,

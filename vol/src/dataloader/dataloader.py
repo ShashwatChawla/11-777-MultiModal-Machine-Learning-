@@ -201,6 +201,10 @@ def resize_data(data, new_shape):
 
     return data
 
+
+def augment_data(data):
+    pass
+
   
 
 def process_data(batch, new_size=None, device='cpu'):
@@ -220,7 +224,10 @@ def process_data(batch, new_size=None, device='cpu'):
     batch['images'] = batch['images'] / 255.0  # normalize images to [0, 1]
 
     batch['depths'] = batch.pop('depth_lcam_front')
+
     batch['flows'] = batch.pop('flow_lcam_front')
+    batch['flows'] = batch['flows'].permute(0, 1, 4, 2, 3)  # convert flows to PyTorch format
+    batch['flows'] = batch['flows'].squeeze(1)  # remove the singleton dimension
 
     # Project the depth data to a pointmap.
     batch['pointmaps'] = unproject_depth_to_pointmap(batch)
