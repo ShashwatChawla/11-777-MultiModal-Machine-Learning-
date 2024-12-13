@@ -116,7 +116,7 @@ class BaseConfig:
         ####### MODEL CONFIGS ########
         ##############################
         self.load_pretrained_flow = True
-        self.flow_checkpoint = "/ocean/projects/cis220039p/pkachana/projects/tartanvo-fisheye-old/src/tartanvo_fisheye/networks/gmflow/pretrained/gmflow_sintel-0c07dcb3.pth" # GMFlow checkpoint
+        self.flow_checkpoint = "/ocean/projects/cis220039p/shared/vol/gmflow_sintel-0c07dcb3.pth" # GMFlow checkpoint
 
         # must be one of ['vit', 'resnet']
         self.pose_net_type = 'resnet'
@@ -144,8 +144,25 @@ class BaseConfig:
         ##############################
         ####### LOGGING CONFIGS ######
         ##############################
-        self.ckpt_save_dir = "/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints"
+        self.ckpt_save_dir = "/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints"
         self.project_name = 'VOL'
         self.log_freq = 10
         self.vis_freq = 100
         self.val_vis_freq = 10
+
+class KittiConfig:
+    def __init__(self):
+        self.vol_checkpoint = '/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints/2024_12_12-19_27_43/model_step_0.pt'
+        self.batch_size = 4
+        self.vol_input_shape = (3, 640, 640)
+        # Logging Arguments
+        self.project_name = 'VOL-KITTI'
+        self.log_imgs = True
+
+        # Data Directories
+        self.calib_dir ='/ocean/projects/cis220039p/shared/datasets/KITTI_odometry/calib/dataset/sequences'
+        self.image_dir ='/ocean/projects/cis220039p/shared/datasets/KITTI_odometry/color/dataset/sequences'
+        self.lidar_dir ='/ocean/projects/cis220039p/shared/datasets/KITTI_odometry/velodyne/dataset/sequences'
+
+        # KITTI Sequences to Evaluate
+        self.sequences = [6]
