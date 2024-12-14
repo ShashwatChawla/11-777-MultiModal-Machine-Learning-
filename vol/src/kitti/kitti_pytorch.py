@@ -4,6 +4,7 @@ import os.path
 import numpy as np
 from PIL import Image
 
+GT_POSE_PTH = '/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/kitti/ground_truth_pose/kitti_T_diff/'
 class OdometryDataset():
     def __init__(self, calib_path = '/media/public_dataset/KITTI/odometry/data_odometry_calib/dataset/sequences', 
                  image_path = '/media/public_dataset/KITTI/odometry/data_odometry_color/dataset/sequences',
@@ -17,8 +18,12 @@ class OdometryDataset():
         self.image_path = image_path
         self.lidar_path = lidar_path
         self.calib_path = calib_path
-                
-        self.len_list = [0, 4541, 5642, 10303, 11104, 11375, 14136, 15237, 16338, 20409, 22000, 23201] 
+
+        # Fails with these vals 
+        # self.len_list = [0, 4541, 5642, 10303, 11104, 11375, 14136, 15237, 16338, 20409, 22000, 23201] 
+        
+        # Update length list to acccording to pcs/images in each of the sequence 
+        self.len_list = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100] 
         self.file_map = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
         self.T_trans = np.array([[0, 0, 1, 0],
@@ -36,16 +41,21 @@ class OdometryDataset():
         for seq_idx, seq_num in enumerate(self.len_list):
             if index < seq_num:
                 cur_seq = seq_idx - 1
-                cur_idx_pc2 = index - self.len_list[seq_idx-1]
-
+                if cur_seq < 0:
+                    cur_seq = 0
+                cur_idx_pc2 = self.len_list[seq_idx-1] - index 
                 if cur_idx_pc2 == 0:
                     cur_idx_pc1 = 0
                 else:
                     cur_idx_pc1 = cur_idx_pc2 - 1        ###############    1 frame gap  ###############   
                 break        
-
+        
         Tr_path = os.path.join(self.calib_path, str(cur_seq).zfill(2), 'calib.txt')
         Tr_data = self.read_calib_file(Tr_path)
+        # TODO(@Shashwat): Parametrize
+        # Note: Currently using img_2 which corresponds to left_img i.e P0. Change accordingly.
+        P_left_cam = Tr_data['P0']
+        P_left_cam = P_left_cam.reshape(3, 4)
         Tr_data = Tr_data['Tr']
         Tr = Tr_data.reshape(3,4)
         Tr = np.vstack((Tr, np.array([0, 0, 0, 1.0])))
@@ -58,15 +68,15 @@ class OdometryDataset():
         im1_png = os.path.join(cur_image_dir, 'image_2/' + str(cur_idx_pc1).zfill(6) + '.png')
         im2_png = os.path.join(cur_image_dir, 'image_2/' + str(cur_idx_pc2).zfill(6) + '.png')
 
-        pose = np.load('ground_truth_pose/kitti_T_diff/' + self.file_map[cur_seq] + '_diff.npy')
+        pose = np.load(GT_POSE_PTH + self.file_map[cur_seq] + '_diff.npy')
 
         point1 = np.fromfile(pc1_bin, dtype=np.float32).reshape(-1, 4)
         point2 = np.fromfile(pc2_bin, dtype=np.float32).reshape(-1, 4)
 
         img1 = Image.open(im1_png).convert('RGB')
         img2 = Image.open(im2_png).convert('RGB')
-        img1 = np.array(img1).astype(np.float) / 255. 
-        img2 = np.array(img2).astype(np.float) / 255. 
+        img1 = np.array(img1).astype(np.float32) / 255. 
+        img2 = np.array(img2).astype(np.float32) / 255. 
 
         if point1.shape[0] < point2.shape[0]:
             n = point1.shape[0]
@@ -148,14 +158,12 @@ class OdometryDataset():
         z_gt, y_gt, x_gt = self.mat2euler( M = R_gt)
         q_gt = self.euler2quat(z = z_gt, y = y_gt, x = x_gt)
 
-        print(pos1.shape, pos2.shape)
-
         # pos2: (h, w, 3)
         # pos1: (h, w, 3)
         # pos2: (npoints, 3)
         # pos1: (npoints, 3)
 
-        return img2, img1, pos2, pos1, q_gt, t_gt
+        return img2, img1, pos2, pos1, q_gt, t_gt, P_left_cam
 
     def __len__(self):
         return len(self.lidar_path)
