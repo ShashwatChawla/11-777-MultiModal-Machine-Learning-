@@ -52,6 +52,10 @@ class OdometryDataset():
         
         Tr_path = os.path.join(self.calib_path, str(cur_seq).zfill(2), 'calib.txt')
         Tr_data = self.read_calib_file(Tr_path)
+        # TODO(@Shashwat): Parametrize
+        # Note: Currently using img_2 which corresponds to left_img i.e P0. Change accordingly.
+        P_left_cam = Tr_data['P0']
+        P_left_cam = P_left_cam.reshape(3, 4)
         Tr_data = Tr_data['Tr']
         Tr = Tr_data.reshape(3,4)
         Tr = np.vstack((Tr, np.array([0, 0, 0, 1.0])))
@@ -159,7 +163,7 @@ class OdometryDataset():
         # pos2: (npoints, 3)
         # pos1: (npoints, 3)
 
-        return img2, img1, pos2, pos1, q_gt, t_gt
+        return img2, img1, pos2, pos1, q_gt, t_gt, P_left_cam
 
     def __len__(self):
         return len(self.lidar_path)
