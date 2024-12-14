@@ -1,18 +1,15 @@
 import sys
 sys.path.append('/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src')
 import torch
+import torch.nn.functional as F
+
 import wandb
 from tqdm import tqdm
 
 from configs.base_config import BaseConfig, KittiConfig
-from dataloader.dataloader import get_dataloader, process_data
 from model.vol_net import VOLNet
-from training.trainer import Trainer
 from training.losses import compute_loss
-
 from kitti.kitti_pytorch import OdometryDataset
-import torchvision.transforms.functional as TF
-import torch.nn.functional as F
 
 
 def preprocess_image(batch_images, target_size=640):
@@ -21,7 +18,10 @@ def preprocess_image(batch_images, target_size=640):
     Maintains aspect ratio of the images
     """
 
-    batch_images = batch_images.permute(0, 3, 1, 2)
+    # If already (b, c, h, w)
+    if batch_images.shape[1] != 3:  
+        batch_images = batch_images.permute(0, 3, 1, 2)
+    
     b, c, h, w = batch_images.shape
     processed_images = []
 
@@ -52,31 +52,48 @@ def preprocess_image(batch_images, target_size=640):
     batch_tensor = torch.stack(processed_images)
     return batch_tensor
 
+def preprocess_lidar(lidar_points: torch.Tensor, P, target_shape=(3, 370, 1126)):
+    """
+    Note: Lidar pts projected to cam using instrincs(P) and XYZ vals stored at those indices
+    """
 
-def preprocess_lidar(lidar_points: torch.Tensor, target_shape=(3, 640, 640)):
-    """
-    Resizes lidar pts from (b, num_pts, c) to (b, 3, 640, 640).
-    Note: lidar points are just placed in the grid and the rest is zero.
-    """
+    # Zero-out negative z values (Velodyne pc has -ve vals)
+    lidar_points[:, :, 2] = torch.where(lidar_points[:, :, 2] < 0, torch.tensor(0, dtype=lidar_points.dtype, device=lidar_points.device), lidar_points[:, :, 2])
 
     batch_size = lidar_points.shape[0]
     num_pts = lidar_points.shape[1]
     
-    target_tensor = torch.zeros((batch_size, *target_shape), dtype=lidar_points.dtype)
+    ones = torch.ones((batch_size, num_pts, 1), dtype=lidar_points.dtype, device=lidar_points.device)
+    # Shape (b, num_pts, 4)
+    lidar_points_hom = torch.cat([lidar_points, ones], dim=-1)  
     
-    # Flatten 
-    flat_target = target_tensor.view(batch_size, -1, 3)
+    # Projection 
+    lidar_points_proj = torch.matmul(lidar_points_hom, P.T) 
+    # Homogeneous to Pixel Coordinates
+    lidar_points_proj[:, :, 0] /= lidar_points_proj[:, :, 2]
+    lidar_points_proj[:, :, 1] /= lidar_points_proj[:, :, 2]
+
+    # Valid projection checks 
+    valid_points = lidar_points_proj[:, :, 2] > 0  
     
-    # To not exceed target size
-    num_points_to_copy = min(num_pts, flat_target.shape[1])
+    u = torch.clamp(lidar_points_proj[:, :, 0], min=0, max=target_shape[2] - 1)
+    v = torch.clamp(lidar_points_proj[:, :, 1], min=0, max=target_shape[1] - 1)
+    u = u * valid_points
+    v = v * valid_points
+
+    # Target Tensor (X, Y, Z)
+    lidar_values = torch.zeros((batch_size, 3, target_shape[1], target_shape[2]), dtype=lidar_points.dtype, device=lidar_points.device)
+
     
-    # Copy pts
-    flat_target[:, :num_points_to_copy] = lidar_points[:, :num_points_to_copy]
+    u_int = u.to(torch.long)
+    v_int = v.to(torch.long)
     
-    # Reshape 
-    target_tensor = flat_target.view(batch_size, *target_shape)
-    
-    return target_tensor
+    # Fill the tensor
+    lidar_values[torch.arange(batch_size).unsqueeze(1), 0, v_int, u_int] = lidar_points[:, :, 0]  # X value
+    lidar_values[torch.arange(batch_size).unsqueeze(1), 1, v_int, u_int] = lidar_points[:, :, 1]  # Y value
+    lidar_values[torch.arange(batch_size).unsqueeze(1), 2, v_int, u_int] = lidar_points[:, :, 2]  # Z value
+
+    return lidar_values
 
 
 def preprocess_data(data, device, config):
@@ -84,14 +101,17 @@ def preprocess_data(data, device, config):
         Convert KITTI Data as per VOL input
     """
 
-    img2, img1, pos2, pos1, q_gt, t_gt = data
-    
+    img2, img1, pos2, pos1, q_gt, t_gt, P_cam = data
+
     # Process Images
     img1 = preprocess_image(img1, config.vol_input_shape[2]).unsqueeze(1).float()
     img2 = preprocess_image(img2, config.vol_input_shape[2]).unsqueeze(1).float()
-    # Process Lidar Pts
-    pos1 = preprocess_lidar(pos1, config.vol_input_shape).unsqueeze(1).float()
-    pos2 = preprocess_lidar(pos2, config.vol_input_shape).unsqueeze(1).float()
+    # Process Lidar Pts 
+    pos1 = preprocess_lidar(pos1, P_cam[0, :, :])
+    pos2 = preprocess_lidar(pos2, P_cam[0, :, :])
+    # Reshape
+    pos1 = preprocess_image(pos1, config.vol_input_shape[2]).unsqueeze(1).float()
+    pos2 = preprocess_image(pos2, config.vol_input_shape[2]).unsqueeze(1).float()
 
     # Convert to VOL data-loader format
     data = {
@@ -137,7 +157,7 @@ def main():
     checkpoint = torch.load(kitti_config.vol_checkpoint)
     model.load_state_dict(checkpoint['model'] if 'model' in checkpoint else checkpoint)
 
-    # Evaluation
+    # # Evaluation
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -161,10 +181,11 @@ def main():
                 save_img1 = data["images"][0][0].cpu().numpy().transpose(1, 2, 0)
                 save_img2 = data["images"][0][1].cpu().numpy().transpose(1, 2, 0)
                 logger.log({
-                            "Processed Input": [
+                            "Processed Input Images": [
                                 wandb.Image(save_img1, caption="Image 1"),
-                                wandb.Image(save_img2, caption="Image 2")]
+                                wandb.Image(save_img2, caption="Image 2")], 
                             })
+            
             # Log losses
             logger.log({
                         "total_loss": loss['total_loss'],
