@@ -202,10 +202,63 @@ def resize_data(data, new_shape):
     return data
 
 
-def augment_data(data):
-    pass
+def random_mask_data(
+    batch: dict,
+    keys: list[str],
+    min_mask: float = 0.25, 
+    max_mask: float = 0.75
+) -> torch.Tensor:
+    """
+    Mask the data with random values between min_mask and max_mask.
+    """
+    B, N, C, H, W = batch[keys[0]].shape
 
-  
+    mask_percentage = torch.empty(B, N).uniform_(min_mask, max_mask)
+    mask = torch.rand(B, N, 1, H, W) < mask_percentage.unsqueeze(-1).unsqueeze(-1).unsqueeze(-1)
+    mask = mask.to(batch[keys[0]].device)
+
+    for key in keys:
+        batch[key] = batch[key].masked_fill(mask, 0)
+
+    return batch
+
+
+def random_pad_data(
+    batch: dict,
+    keys: list[str],
+    min_pad: int = 0, 
+    max_pad: int = 0.75, 
+) -> torch.Tensor:
+    """
+    Mask out the edges of the data with random padding.
+    """
+    B, N, C, H, W = batch[keys[0]].shape
+
+    max_pad = max_pad * 0.5 # max_pad is the percentage of the image to pad
+
+    #TODO: use different padding along batches and sequences
+    random_x_pad = torch.randint(0, int(W * max_pad), (1,))
+    random_y_pad = torch.randint(0, int(H * max_pad), (1,))
+
+    for key in keys:
+        data = batch[key]
+
+        data[:, :, :, :random_y_pad, :] = 0
+        data[:, :, :, -random_y_pad:, :] = 0
+        data[:, :, :, :, :random_x_pad] = 0
+        data[:, :, :, :, -random_x_pad:] = 0
+        
+    return batch
+
+
+def augment_data(batch):
+
+    # Mask the data
+    batch = random_mask_data(batch, ['pointmaps', 'masks'])
+    batch = random_pad_data(batch, ['images', 'pointmaps', 'flows', 'masks'])
+
+    return batch
+
 
 def process_data(batch, new_size=None, device='cpu'):
     # Process the pose data.
@@ -227,7 +280,6 @@ def process_data(batch, new_size=None, device='cpu'):
 
     batch['flows'] = batch.pop('flow_lcam_front')
     batch['flows'] = batch['flows'].permute(0, 1, 4, 2, 3)  # convert flows to PyTorch format
-    batch['flows'] = batch['flows'].squeeze(1)  # remove the singleton dimension
 
     # Project the depth data to a pointmap.
     batch['pointmaps'] = unproject_depth_to_pointmap(batch)
@@ -238,10 +290,14 @@ def process_data(batch, new_size=None, device='cpu'):
         # Resize the data.
         batch = resize_data(batch, new_size)
 
+    batch['masks'] = torch.ones_like(batch['images'][:, :, 0:1])
+
     # Convert the data to the specified device.
     for key in batch:
         if isinstance(batch[key], torch.Tensor):
             batch[key] = batch[key].to(device)
+    
+    batch = augment_data(batch)
 
     return batch
 

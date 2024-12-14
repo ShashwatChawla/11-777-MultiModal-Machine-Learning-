@@ -59,7 +59,7 @@ class VOLNet(nn.Module):
         lidar2 = x["pointmaps"][:, 1]     # retrieve the second lidar pointmap
 
         if self.config.use_gt_flow:
-            flow = x["flows"]
+            flow = x["flows"].squeeze(1)    # retrieve the ground truth flow
 
         else:
             # Flow model

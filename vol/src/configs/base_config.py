@@ -115,7 +115,10 @@ class BaseConfig:
         ##############################
         ####### MODEL CONFIGS ########
         ##############################
-        self.load_pretrained_flow = True
+        self.load_pretrained_volnet = True
+        self.volnet_checkpoint = "/ocean/projects/cis220039p/pkachana/projects/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints/2024_12_12-18_45_43/model_step_71000.pt"
+
+        self.load_pretrained_flow = False
         self.flow_checkpoint = "/ocean/projects/cis220039p/pkachana/projects/tartanvo-fisheye-old/src/tartanvo_fisheye/networks/gmflow/pretrained/gmflow_sintel-0c07dcb3.pth" # GMFlow checkpoint
 
         # must be one of ['vit', 'resnet']
@@ -125,8 +128,8 @@ class BaseConfig:
         ######## TRAIN CONFIGS #######
         ##############################
         self.use_gt_flow = False
-        self.freeze_flow_net = True
-        self.supervise_flow = False
+        self.freeze_flow_net = False
+        self.supervise_flow = True
 
         assert not (self.use_gt_flow and self.supervise_flow), "Cannot use both gt flow and supervise flow"
         assert not (self.freeze_flow_net and self.supervise_flow), "Cannot freeze flow net and supervise flow"

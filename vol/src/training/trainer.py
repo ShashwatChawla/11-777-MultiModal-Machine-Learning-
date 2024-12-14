@@ -85,7 +85,11 @@ class Trainer():
             data['rotations'], 
             output['translation'], 
             data['translations'],
-            alpha=self.config.loss_alpha
+            alpha=self.config.loss_alpha,
+            supervise_flow=self.config.supervise_flow,
+            predicted_flow=output['flow'] if return_flow else None,
+            gt_flow=data['flows'] if return_flow else None,
+            mask=data['masks'] if return_flow else None
         )
 
         total_loss = loss['total_loss']
@@ -104,7 +108,11 @@ class Trainer():
             data['rotations'], 
             output['translation'], 
             data['translations'],
-            alpha=self.config.loss_alpha
+            alpha=self.config.loss_alpha,
+            supervise_flow=self.config.supervise_flow,
+            predicted_flow=output['flow'] if return_flow else None,
+            gt_flow=data['flows'] if return_flow else None,
+            mask=data['masks'] if return_flow else None
         )
 
         return loss, output
@@ -119,7 +127,7 @@ class Trainer():
             val_batch = self.val_loader.load_sample()
             val_processed_batch = self.data_process_fn(val_batch, device=self.device)
 
-            return_flow = val_step % self.val_vis_freq == 0
+            return_flow = (val_step % self.val_vis_freq == 0 or self.config.supervise_flow)
 
             val_loss, output = self.val_step(val_processed_batch, return_flow=return_flow)
             val_rot_loss += val_loss['rotation_loss']
@@ -131,7 +139,7 @@ class Trainer():
                 img2 = val_processed_batch['images'][0][1].cpu().numpy().transpose(1, 2, 0)
                 flow = output['flow'][0].cpu().numpy().transpose(1, 2, 0)
                 flow_img = visflow(flow)
-                gt_flow = val_processed_batch['flows'][0].cpu().numpy().transpose(1, 2, 0)
+                gt_flow = val_processed_batch['flows'][0][0].cpu().numpy().transpose(1, 2, 0)
                 gt_flow_img = visflow(gt_flow)
 
                 self.logger.log({
@@ -161,7 +169,7 @@ class Trainer():
             batch = self.train_loader.load_sample()
             processed_batch = self.data_process_fn(batch, device=self.device)
 
-            return_flow = step % self.vis_freq == 0
+            return_flow = (step % self.vis_freq == 0 or self.config.supervise_flow)
             loss, output = self.train_step(processed_batch, return_flow=return_flow)
 
             # self.scheduler.step()
@@ -178,7 +186,7 @@ class Trainer():
                     img2 = processed_batch['images'][0][1].detach().cpu().numpy().transpose(1, 2, 0)
                     flow = output['flow'][0].detach().cpu().numpy().transpose(1, 2, 0)
                     flow_img = visflow(flow)
-                    gt_flow = processed_batch['flows'][0].detach().cpu().numpy().transpose(1, 2, 0)
+                    gt_flow = processed_batch['flows'][0][0].detach().cpu().numpy().transpose(1, 2, 0)
                     gt_flow_img = visflow(gt_flow)
 
                     log["train_images"] = [

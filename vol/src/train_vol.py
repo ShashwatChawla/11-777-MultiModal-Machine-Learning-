@@ -17,16 +17,25 @@ def main():
 
     model = VOLNet(config)
 
+    if config.load_pretrained_volnet:
+        volnet_checkpoint = config.volnet_checkpoint
+        volnet_checkpoint = torch.load(volnet_checkpoint)
+        volnet_weights = volnet_checkpoint['model'] if 'model' in volnet_checkpoint else volnet_checkpoint
+        model.load_state_dict(volnet_weights, strict=True)
+        print("Loaded pretrained volnet weights")
+
     if config.load_pretrained_flow:
         flow_checkpoint = config.flow_checkpoint
         flow_checkpoint = torch.load(flow_checkpoint)
         flow_weights = flow_checkpoint['model'] if 'model' in flow_checkpoint else flow_checkpoint
         model.flow_net.load_state_dict(flow_weights, strict=True)
+        print("Loaded pretrained flow weights")
     
     if config.freeze_flow_net:
         model.flow_net.eval()
         for param in model.flow_net.parameters():
             param.requires_grad = False
+        print("Froze flow net")
     
     trainer = Trainer(
         config=config,
