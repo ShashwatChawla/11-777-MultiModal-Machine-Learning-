@@ -39,7 +39,7 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Visual Odometry (VO), or the estimation of camera motions from sequential RGB frames, is essential in autonomous systems and visual SLAM. Traditional geometry-based methods often face challenges in environments with dynamic obstacles and rapid movements. To enhance performance, learning-based monocular VO approaches like TartanVO have been developed, demonstrating significant real-world effectiveness. However, these methods struggle with scale ambiguity due to a lack of inherent depth information. To address this, we propose \textbf{VOLNet}, a Visual-LiDAR Odometry method that integrates RGB images with LiDAR data, harnessing the semantic richness of RGB images and the precise geometric details from 3D LiDAR point clouds. This multimodal approach underscores the potential for improved odometry tasks. Typically trained on limited datasets such as KITTI, existing methods do not adequately adapt to varied and dynamic real-world scenarios. We train on TartanAir-v2, a large-scale synthetic dataset that includes diverse indoor and outdoor environments. Our method, free from time-sync and camera calibration issues, leverages high-quality synthetic data to demonstrate enhanced estimation accuracy and superior cross-dataset generalizability, pushing the boundaries of existing Visual-LiDAR Odometry baselines.
+Visual Odometry (VO), or the estimation of camera motions from sequential RGB frames, is essential in autonomous systems and visual SLAM. Traditional geometry-based methods often face challenges in environments with dynamic obstacles and rapid movements. To enhance performance, learning-based monocular VO approaches like TartanVO have been developed, demonstrating significant real-world effectiveness. However, these methods struggle with scale ambiguity due to a lack of inherent depth information. To address this, we propose \textbf{VOLNet}, a Visual-LiDAR Odometry method that integrates RGB images with LiDAR data with explicit alignment, harnessing the semantic richness of RGB images and the precise geometric details from 3D LiDAR point clouds. This multimodal approach underscores the potential for improved odometry tasks. Typically trained on limited datasets such as KITTI, existing methods do not adequately adapt to varied and dynamic real-world scenarios. We train on TartanAir-v2, a large-scale synthetic dataset that includes diverse indoor and outdoor environments. Our method, free from time-sync and camera calibration issues, leverages high-quality synthetic data to demonstrate enhanced estimation accuracy and superior cross-dataset generalizability, pushing the boundaries of existing Visual-LiDAR Odometry baselines.
 
 \end{abstract}
 
@@ -61,7 +61,7 @@ By benefiting from the synthetic dataset, our approach not only improves the rel
 
 \subsection{Contributions}
 
-Our proposed solution involves training a visual-LiDAR odometry model on the TartanAir-v2 dataset, a comprehensive synthetic dataset designed to simulate a wide range of environmental conditions. This training approach aims to overcome the limitations of existing models by including scenes with significant environmental variability and dynamic obstacles, thereby ensuring that our models are better prepared for real-world deployment. We contribute a novel learning-based visual-LiDAR framework that is robust to camera parameters, understands scale, and is data-driven and scalable. Through this approach, we seek to set new benchmarks in estimation accuracy and adaptability for Visual-LiDAR Odometry systems, pushing the boundaries of what is currently achievable in autonomous navigation.
+Our proposed solution involves training a visual-LiDAR odometry model on the TartanAir-v2 dataset, a comprehensive synthetic dataset designed to simulate a wide range of environmental conditions. This training approach aims to overcome the limitations of existing models by including scenes with significant environmental variability and dynamic obstacles, thereby ensuring that our models are better prepared for real-world deployment. We contribute a novel learning-based visual-LiDAR model \textbf{VOLNet} with explicit alignment between the RBG and LiDAR data that is robust to camera parameters, understands scale, and is data-driven and scalable.  Through this approach, we seek to set new benchmarks in estimation accuracy and adaptability for Visual-LiDAR Odometry systems, pushing the boundaries of what is currently achievable in autonomous navigation.
 
 
 \clearpage
@@ -388,13 +388,13 @@ On the LiDAR side, SDV-LOAM introduces an adaptive sweep-to-map optimization met
 \end{figure*}
 
 \subsection{Overall model structure}
-The model first consists of a preprocessing step for both the RGB images and LiDAR point clouds. The images are sent through an optical flow regression model to get an intermediary flow representation, and the point clouds are projected onto the image to enforce explicit matching between the 2D pixels and the corresponding 3D points. These processed modalities are then sent through their respective ViT encoders and then combined with a ViT decoder and a projection head to output pose. The model diagram is presented in Figure \ref{fig:model-diagram}. Some key changes from out initial proposed model include projecting our LiDAR points into pointmaps instead of depth, and adding the initial RGB images to the flow as input.
+The model first consists of a preprocessing step for both the RGB images and LiDAR point clouds. The images are sent through an optical flow regression model to get an intermediary flow representation, and the point clouds are projected onto the image to enforce explicit alignment between the 2D pixels and the corresponding 3D points. These processed modalities are then sent through their respective ViT encoders and then combined with a ViT decoder and a projection head to output pose. The model diagram is presented in Figure \ref{fig:model-diagram}. Some key changes from out initial proposed model include projecting our LiDAR points into pointmaps instead of depth, and adding the initial RGB images to the flow as input.
 
 % \clearpage
 
 \subsection{Unimodel Processing}
 \subsubsection{RGB}
-The key information we seek from the RGB input is the presence of strong visual features that allow us to match between frames and establish correspondences. To achieve this, we process the images by running them through a flow model, which computes optical flow to provide dense correspondences between frames. TartanVO trains its odometry model solely using a flow model as its encoder, so we have evidence that this approach retrains information needed for odometry. We then concatenate the two frames with their corresponding flow to form the final processed input from the RGB data to retain all information for the decoder.
+The key information we seek from the RGB input is the presence of strong visual features that allow us to match between frames and establish correspondences. To achieve this, we process the images by running them through a flow model, which computes optical flow to provide dense correspondences between frames. TartanVO trains its odometry model solely using a flow model as its encoder, so we have evidence that this approach retrains information needed for odometry. We then concatenate the two frames with their corresponding flow to form the final processed input from the RGB data to retain all information for the decoder. We use GMFlow \cite{gmflow} as our pretrained flow model.
 
 \subsubsection{LiDAR}
 We preprocess the LiDAR point cloud by projecting it onto the image space, such that the 3D points are in the shape of the image but contain $(x,y,z)$ values instead of $(R, G, B)$ as shown in DVLO \cite{dvlo}. This "point-map" 3D representation has been shown to be very effective in relating 2D RGB images to 3D points, as seen in works like DUSt3R \cite{dust3r}. Since the pointmap is in the same shape as the RGB image, the points can be concatenated, establishing strong correspondence between RGB pixels and their corresponding LiDAR points. We can then use the same encoder as used for the RGB images on these point maps, thus making the shared space between the two modalities more homogeneous.
@@ -467,121 +467,58 @@ Given that we trained solely on a synthetic dataset, some key augmentations to t
     \caption{The top row shows the random padding augmentation to enable random aspect ratio inputs. The bottom row shows LiDAR dropout applied to RGB images for visualization.}
     \label{fig:augmentations}
 \end{figure}
+
 \subsection{Hyperparameters and their effects}
 
-Key hyperparameters were the loss alphas, the addition of the flow loss, and the training curriculum. As shown in Figure \ref{fig:flow_supervision}, the addition of flow supervision, and thereby the weighting of the flow loss, played a significant role in the model's ability to extract useful features from the RGB images. Additionally, we found that a key technique needed to successfully learn seperate skills such as flow and odometry was curriculum learning. Our training curriculum for flow was designed to progressively guide the model toward effective odometry performance. Initially, we trained the model with ground truth flow, enabling the decoder to learn pose prediction from accurate flow and LiDAR inputs. Next, we used a frozen, pretrained GMFlow model, allowing the decoder to adjust to predicted flow while preserving the pretrained flow representations. Finally, we unfroze the flow module and added flow supervision, training the model end-to-end to fine-tune flow predictions for odometry. This staged approach ensured the model effectively balanced learning flow and pose while adapting to the training dataset. More details, along with visual results, are shown in the Analysis section.
+Key hyperparameters were the loss alphas, the addition of the flow loss, and the training curriculum.
 
 \clearpage
 
-    \begin{tabular}{lllll|cc|cc|cc|cc}
+    % \begin{tabular}{lllll|cc|cc|cc|cc}
     % \linewidth
-    \toprule
-    \multicolumn{5}{l|}{\multirow{2}[0]{*}{\textbf{Method}}} & \multicolumn{2}{c|}{06} & \multicolumn{2}{c|}{07} & \multicolumn{2}{c|}{09} & \multicolumn{2}{c}{10} \\
-         &      &      &      &      & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$\\
-    \midrule
-    \multicolumn{13}{l}{\it{Visual Odometry Methods:}} \\
-    \midrule
-    \multicolumn{5}{l|}{ORB-SLAM (-)} & 18.68 & 0.26 & 10.96 & 0.37 & 15.3 & \textbf{0.26} & 3.71 & \textbf{0.3}  \\
-    \multicolumn{5}{l|}{TartanVO (*)} & 4.72 & 2.95 & 4.32 & 3.41 & 6.0 & 3.11 & 6.89 & 2.73 \\
-    \midrule
-    \multicolumn{13}{l}{\it{LiDAR Odometry Methods:}} \\
-    \midrule
-    \multicolumn{5}{l|}{ICP-SLAM (-)} & 1.95 & 1.59 & 5.17 & 3.35 & 6.93 & 2.89 & 8.91 & 4.74  \\
-    \multicolumn{5}{l|}{LO-Net (*)} & 1.04 & 0.69 & 0.71 & 0.50 & 2.12 & 0.77 & 1.80 & 0.93 \\
-    \midrule
-    \multicolumn{13}{l}{\it{Multimodal Odometry Methods:}} \\
-    \midrule
-    \multicolumn{5}{l|}{H-VLO (*)} & 0.75 & 0.30 & 0.79 & 0.48 & 1.89 & 0.34 & 1.36 & 0.43 \\
-    \multicolumn{5}{l|}{DVLO (*)} & \textbf{0.33} & \textbf{0.17} & \textbf{0.46} & \textbf{0.33} & 0.85 & 0.36 & 0.88 & 0.46 \\
-    \multicolumn{5}{l|}{DV-LOAM (-)} & 0.65 & 0.33 & 0.51 & \textbf{0.33} & 0.73 & 0.32 & 0.87 & 0.38 \\
-    \multicolumn{5}{l|}{SDV-LOAM (-)} & 0.50 & 0.27 & 0.84 & 0.53 & \textbf{0.63} & 0.34 & \textbf{0.68} & 0.41 \\
-    \midrule
-    \multicolumn{13}{l}{\it{Proposed Method:}} \\
-    \midrule
-    \multicolumn{5}{l|}{\textbf{Ours}} & 0.4345 & 0.49 & 0.1639 & 0.495 & 0.343 & 0.495 & 0.234 & 0.495 \\
+    % \toprule
+    % \multicolumn{5}{l|}{\multirow{2}[0]{*}{\textbf{Method}}} & \multicolumn{2}{c|}{06} & \multicolumn{2}{c|}{07} & \multicolumn{2}{c|}{09} & \multicolumn{2}{c}{10} \\
+    %      &      &      &      &      & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$ & $t_{rel}$ & $r_{rel}$\\
+    % \midrule
+    % \multicolumn{13}{l}{\it{Visual Odometry Methods:}} \\
+    % \midrule
+    % \multicolumn{5}{l|}{ORB-SLAM (-)} & 18.68 & 0.26 & 10.96 & 0.37 & 15.3 & \textbf{0.26} & 3.71 & \textbf{0.3}  \\
+    % \multicolumn{5}{l|}{TartanVO (*)} & 4.72 & 2.95 & 4.32 & 3.41 & 6.0 & 3.11 & 6.89 & 2.73 \\
+    % \midrule
+    % \multicolumn{13}{l}{\it{LiDAR Odometry Methods:}} \\
+    % \midrule
+    % \multicolumn{5}{l|}{ICP-SLAM (-)} & 1.95 & 1.59 & 5.17 & 3.35 & 6.93 & 2.89 & 8.91 & 4.74  \\
+    % \multicolumn{5}{l|}{LO-Net (*)} & 1.04 & 0.69 & 0.71 & 0.50 & 2.12 & 0.77 & 1.80 & 0.93 \\
+    % \midrule
+    % \multicolumn{13}{l}{\it{Multimodal Odometry Methods:}} \\
+    % \midrule
+    % \multicolumn{5}{l|}{H-VLO (*)} & 0.75 & 0.30 & 0.79 & 0.48 & 1.89 & 0.34 & 1.36 & 0.43 \\
     % \multicolumn{5}{l|}{DVLO (*)} & \textbf{0.33} & \textbf{0.17} & \textbf{0.46} & \textbf{0.33} & 0.85 & 0.36 & 0.88 & 0.46 \\
     % \multicolumn{5}{l|}{DV-LOAM (-)} & 0.65 & 0.33 & 0.51 & \textbf{0.33} & 0.73 & 0.32 & 0.87 & 0.38 \\
     % \multicolumn{5}{l|}{SDV-LOAM (-)} & 0.50 & 0.27 & 0.84 & 0.53 & \textbf{0.63} & 0.34 & \textbf{0.68} & 0.41 \\
+    % {\it{Proposed Method:}} \\
     % \midrule
-    \bottomrule
-    \label{tab:results}
-    \end{tabular}
+    % \multicolumn{5}{l|}{VOL} & 0.75 & 0.30 & 0.79 & 0.48 & 1.89 & 0.34 & 1.36 & 0.43 \\
+    % % \multicolumn{5}{l|}{DVLO (*)} & \textbf{0.33} & \textbf{0.17} & \textbf{0.46} & \textbf{0.33} & 0.85 & 0.36 & 0.88 & 0.46 \\
+    % % \multicolumn{5}{l|}{DV-LOAM (-)} & 0.65 & 0.33 & 0.51 & \textbf{0.33} & 0.73 & 0.32 & 0.87 & 0.38 \\
+    % % \multicolumn{5}{l|}{SDV-LOAM (-)} & 0.50 & 0.27 & 0.84 & 0.53 & \textbf{0.63} & 0.34 & \textbf{0.68} & 0.41 \\
+    % % \midrule
+    % \bottomrule
+    % \label{tab:results}
+    % \end{tabular}
 
 
-
-
-
-
-
-% \begin{table}[t]
-% \centering
-% \begin{tabular}{@{}lrr@{}}
-% \toprule
-%                             & \multicolumn{2}{c}{Dev} \\
-% Methods                     & Accuracy $\uparrow$ & $L_2$ Error $\downarrow$  \\
-% \midrule
-% Unimodal 1 \cite{} & & \\
-% Unimodal 2 \cite{} & & \\
-% Unimodal 3 \cite{} & & \\
-% \midrule
-% Simple Multimodal 1 \cite{} & & \\
-% Simple Multimodal 2 \cite{} & & \\
-% Simple Multimodal 3 \cite{} & & \\
-% \midrule
-% Previous Approach 1 \cite{} & & \\
-% Previous Approach 2 \cite{} & & \\
-% Previous Approach 3 \cite{} & & \\
-% \midrule
-% Proposed Method (v1)            & & \\
-% Proposed Method (v2)            & & \\
-% Proposed Method (final)            & & \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
 \clearpage
 \section{Results (1 page)}
-
-\subsection{Training Results}
-We successfully trained the model and observed that it learns the task rather quickly, in surprisingly few steps. We provide the training and validation losses in Figure \ref{fig:training_loss} and \ref{fig:val_loss}, respectively. The pose losses dropped sharply during the initial stages of training and soon stabilized at values that are competitive with the training losses reported for TartanVO. This rapid convergence highlights the model's ability to effectively utilize the flow and LiDAR inputs to learn pose estimation efficiently, demonstrating the power of these modalities and the aligned representation for odometry learning. We also observe that the training loss curves and the validation loss curves have similar shape and values, indicating that the model is not overfitting.
-
-\begin{figure}[h!]
-    \centering
-    \begin{tabular}{c} % Two columns
-        % First row
-        \includegraphics[width=0.45\textwidth]{Reports/4-Final-Report/images/losses/t_l.png} \\
-        
-        % Second row
-        \includegraphics[width=0.45\textwidth]{Reports/4-Final-Report/images/losses/r_l.png} 
-    \end{tabular}
-    \caption{The top plot shows the training translation loss and the bottom plot shows the training rotation loss.}
-    \label{fig:training_loss}
-\end{figure}
+We evaluated the model architecture using the KITTI odometry dataset, primarily to benchmark its performance against other baselines.
 
 
-\begin{figure}[h!]
-    \centering
-    \begin{tabular}{c} % Two columns
-        % First row
-        \includegraphics[width=0.45\textwidth]{Reports/4-Final-Report/images/losses/val_t_l.png} \\
-        
-        % Second row
-        \includegraphics[width=0.45\textwidth]{Reports/4-Final-Report/images/losses/val_r_l.png} 
-    \end{tabular}
-    \caption{The top plot shows the validation translation loss and the bottom plot shows the validation rotation loss.}
-    \label{fig:val_loss}
-\end{figure}
-
-
-\subsection{KITTI Evaluation}
-We evaluated the model architecture using the KITTI odometry dataset, primarily to benchmark its performance against other baselines. Table \ref{tab:sequence_errors} summarizes the model's performance on sequences 6 to 10, evaluated over the initial 1000 steps. The Average Translation Error (ATE) across all sequences ranges from 0.16m to 0.435m, while the Average Rotation Error (ARE) falls between 0.490 rad and 0.495 rad.
-
-
-\subsubsection{Required Steps}
+\subsection{Required Steps}
 
 \begin{itemize}
     \item \textbf{DataLoader:} To facilitate this evaluation, we developed a KITTI sequence loader to load the requested data sequences along with the specified sequence length. To ensure compatibility with the PyTorch DataLoader, we designed a pipeline that loads images, lidar point clouds, and calibration data. This data includes the extrinsics between the lidar and camera, which were used to transform the lidar information into the camera frame. Additionally, the camera intrinsics were provided as output, enabling the evaluation script to project lidar points onto the camera image.
     
-    \item \textbf{Evaluation Script:} For model inference on the KITTI dataset, the input data must be correctly formatted. Since our training dataset images differed in shape from those in the KITTI dataset, we resized the images while maintaining the aspect ratio to match the model's required input shape. Figure 3 illustrates a KITTI image, while Figure 2 shows the reshaped input image fed into the model. Similarly, for the lidar input, we projected the lidar points onto the image plane using camera intrinsics. Afterward, the projected lidar points were rescaled to match the input shape of the model. Once this preprocessing was complete, we proceeded with model inference testing.
+    \item \textbf{Evaluation Script:} For model inference on the KITTI dataset, the input data needed to be correctly formatted. Since our training dataset images differed in shape from those in the KITTI dataset, we resized the images while maintaining the aspect ratio to match the model's required input shape. Figure 3 illustrates a KITTI image, while Figure 2 shows the reshaped input image fed into the model. Similarly, for the lidar input, we projected the lidar points onto the image plane using camera intrinsics. Afterward, the projected lidar points were rescaled to match the input shape of the model. Once this preprocessing was complete, we proceeded with model inference testing.
 \end{itemize}   
 
 \begin{figure}[t]
@@ -593,189 +530,18 @@ We evaluated the model architecture using the KITTI odometry dataset, primarily 
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=0.6\linewidth]{Reports/4-Final-Report/images/results/vol_input-0.png}
+    \includegraphics[width=1.0\linewidth]{Reports/4-Final-Report/images/results/vol_input-0.png}
     \caption{Processed Image for the model, Image 1}
     \label{fig:kitti-img1}
 \end{figure}
 
-\begin{table}[htbp]
-    \centering
-    \caption{Average Translation Error (ATE) and Average Rotation Error (ARE) for KITTI Sequences 6 to 10}
-    \label{tab:sequence_errors}
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \textbf{Sequence} & \textbf{ATE} & \textbf{ARE (rad)} \\ \hline
-        6 & 0.4345 & 0.490 \\ \hline
-        7 & 0.1639 & 0.495 \\ \hline
-        8 & 0.2570 & 0.495 \\ \hline
-        9 & 0.3430 & 0.495 \\ \hline
-        10 & 0.2340 & 0.495 \\ \hline
-    \end{tabular}
-\end{table}
 
-Further, some prediction (upto 100 frames) error plots for the challenging sequences are shown in figures \ref{fig:err_seq03} and \ref{fig:err_seq08}.
-
-\begin{figure}[h!]
-    \centering
-
-    % Row 1
-    \begin{subfigure}{\textwidth} % Adjust width to fit your needs
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/08_path.png} % Replace with your image
-        \caption{Predicted Path}
-        \label{fig:sub1}
-    \end{subfigure}
-
-    \vskip\baselineskip % Space between rows
-
-    % Row 2
-    \begin{subfigure}{\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/08_xyz.png} % Replace with your image
-        \caption{Translation Error}
-        \label{fig:sub2}
-    \end{subfigure}
-
-    \vskip\baselineskip % Space between rows
-
-    % Row 3
-    \begin{subfigure}{\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/08_rpy.png} % Replace with your image
-        \caption{Rotation Error}
-        \label{fig:sub3}
-    \end{subfigure}
-    \vskip\baselineskip % Space between rows
-
-    % Main figure caption
-    \caption{Prediction Errors for Sequence 08.}
-    \label{fig:err_seq08}
-\end{figure}
-
-\begin{figure}[h!]
-    \centering
-
-    % Row 1
-    \begin{subfigure}{\textwidth} % Adjust width to fit your needs
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/03_path.png} % Replace with your image
-        \caption{Predicted Path}
-        \label{fig:sub11}
-    \end{subfigure}
-
-    \vskip\baselineskip % Space between rows
-
-    % Row 2
-    \begin{subfigure}{\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/03_xyz.png} % Replace with your image
-        \caption{Translation Error}
-        \label{fig:sub12}
-    \end{subfigure}
-
-    \vskip\baselineskip % Space between rows
-
-    % Row 3
-    \begin{subfigure}{\textwidth}
-        \centering
-        \includegraphics[width=\linewidth]{Reports/4-Final-Report/images/error_plots/03_rpy.png} % Replace with your image
-        \caption{Rotation Error}
-        \label{fig:sub13}
-    \end{subfigure}
-    \vskip\baselineskip % Space between rows
-
-    % Main figure caption
-    \caption{Prediction Errors for Sequence 03.}
-    \label{fig:err_seq03}
-\end{figure}
-
-
-% \clearpage
+\clearpage
 \section{Analysis (2 pages)}
-Figure \ref{fig:seq6_errors} - \ref{fig:seq10_errors} presents the Average Translation and Rotation Error plots for KITTI dataset sequences 6 to 10. The model demonstrated better performance in predicting the rotational component of visual odometry compared to the translational component. Notably, sequences 7 and 10 exhibited lower Average Translation Errors compared to other trajectories. This could be attributed to the challenging nature of these sequences, which include abrupt turns that were likely underrepresented in the training dataset. Additionally, the model's performance for both the translation and rotation components of odometry is influenced by its inability to account for real-world sensor dynamics, such as lidar skew during vehicle motion and sensor noise, as it was trained on a synthetic dataset. We provide the comparison against the baselines in Table \ref{tab:results}. We observe that our model is competitive with state-of-the-art learning-based visual-LiDAR method even though even it was trained on KITTI, so its zero-shot generalization is very promising.       
- 
-\begin{figure}[htbp]
-    \centering
-    % First Row of Images
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq6-avg-rot-error.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq6-avg-trans-error.png}
-    \end{minipage}
-    \caption{Average Rotation(left) and Translation Error Plots(right) for Sequence 6}
-    \label{fig:seq6_errors}
-    \vspace{0.3cm}
-
-    % Second Row of Images
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq7-avg-rot-error.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq7-avg-trans-error.png}
-    \end{minipage}
-    \caption{Average Rotation(left) and Translation Error Plots(right) for Sequence 7}
-    \label{fig:seq7_errors}
-    \vspace{0.3cm}
-
-    % Third Row of Images
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq8-avg-rot-error.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq8-avg-trans-error.png}
-    \end{minipage}
-    \caption{Average Rotation(left) and Translation Error Plots(right) for Sequence 8}
-    \label{fig:seq8_errors}
-    \vspace{0.3cm}
-    
-    % Fourth Row of Images
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq9-avg-rot-error.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq9-avg-trans-error.png}
-    \end{minipage}
-    \caption{Average Rotation(left) and Translation Error Plots(right) for Sequence 9}
-    \label{fig:seq9_errors}
-    \vspace{0.3cm}
-
-    % Fifth Row of Images
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq10-avg-rot-error.png}
-    \end{minipage}
-    \hfill
-    \begin{minipage}{0.23\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{Reports/4-Final-Report/images/results/seq10-avg-trans-error.png}
-    \end{minipage}
-    \caption{Average Rotation(left) and Translation Error Plots(right) for Sequence 10}
-    \label{fig:seq10_errors}
-    \vspace{0.3cm}
-
-\end{figure}
-
-
-
-
-
-% This section should include plots.  For example, how key metrics vary with a specific hyperparameter, task complexity, etc.
+This section should include plots.  For example, how key metrics vary with a specific hyperparameter, task complexity, etc.
 
 \subsection{Intrinsic Metrics}
-The key intrinsic metric we measured was flow, which plays a crucial role in ensuring accurate correspondences between frames. It was essential to retain flow information during training while carefully balancing the extent to which the model focuses on odometry without forgetting flow. We achieved this balance through a carefully designed curriculum training strategy. Initially, we trained the model with the flow module frozen and no augmentations applied, allowing the model to focus on foundational learning. Subsequently, we introduced augmentations and unfroze the flow module, adding flow supervision to guide learning. This approach significantly improved model performance, as the flow outputs demonstrated that the model successfully learned the augmentations, developing some invariance to varying aspect ratios as shown in Figure \ref{fig:flow_supervision}. Consequently, flow served as a valuable auxiliary measure for evaluating robustness to these augmentations. We observe that the flow loss also closely follows the odometry loss curve, indicating a strong correlation as shown in Figure \ref{fig:Flow_losses}.
+The key intrinsic metric we measured was flow, which plays a crucial role in ensuring accurate correspondences between frames. It was essential to retain flow information during training while carefully balancing the extent to which the model focuses on odometry without forgetting flow. We achieved this balance through a carefully designed curriculum training strategy. Initially, we trained the model with the flow module frozen and no augmentations applied, allowing the model to focus on foundational learning. Subsequently, we introduced augmentations and unfroze the flow module, adding flow supervision to guide learning. This approach significantly improved model performance, as the flow outputs demonstrated that the model successfully learned the augmentations, developing some invariance to varying aspect ratios as shown in Figure \ref{}. Consequently, flow served as a valuable auxiliary measure for evaluating robustness to these augmentations. We observe that the flow loss also closely follows the odometry loss curve, indicating a strong correlation as shown in Figure \ref{fig:Flow_losses}.
 
 
 \begin{figure}[h!]
@@ -799,8 +565,8 @@ The key intrinsic metric we measured was flow, which plays a crucial role in ens
         \includegraphics[width=0.22\textwidth]{Reports/4-Final-Report/images/intrinsic_metric/flow_bad.png}\\ 
         
         % Second row
-        \includegraphics[width=0.22\textwidth]{Reports/4-Final-Report/images/intrinsic_metric/img1.png} & 
-        \includegraphics[width=0.22\textwidth]{Reports/4-Final-Report/images/intrinsic_metric/flow1.png}\\ 
+        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/intrinsic_metric/img1.png} & 
+        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/intrinsic_metric/flow1.png}\\ 
     \end{tabular}
     \caption{The top row shows the pretrained flow model's flow output at the start of training, and the second row shows the model's flow output at the the end of training. The model shows that it has learned to be invariant to different aspect ratios.}
     \label{fig:flow_supervision}
@@ -809,10 +575,11 @@ The key intrinsic metric we measured was flow, which plays a crucial role in ens
 
 
 
+
 \clearpage
 \subsection{Qualitative Analysis and Examples}
 
-In figure \ref{fig:tartanvo-opticalflow}, the bottom image, illustrates the optical flow representation while executing the TartanVO baseline on KITTI Odometry Trajectory - Sequence 10. This visualization provides valuable qualitative, insights showing that atleast our flow model is able to generalize to different data. Because the largest distribution shift we expect to see if from RGB images, and given that flow seems to be robust to this shift, we are more confident in our model's ability to perform in out-of-distribution settings. We also projected the model's odometry into 2D, and visualized the model's predicted odometry as flow with motion arrows. We provide more visualizations of the model's odometry outputs in Figure \ref{fig:odom_flow}.
+In figure \ref{fig:tartanvo-opticalflow}, the bottom image, illustrates the optical flow representation while executing the TartanVO baseline on KITTI Odometry Trajectory - Sequence 10. This visualization provided valuable insights that informed the design of the model's structure.
 
 
 \begin{figure}[t]
@@ -822,32 +589,8 @@ In figure \ref{fig:tartanvo-opticalflow}, the bottom image, illustrates the opti
     \label{fig:tartanvo-opticalflow}
 \end{figure}
 
-
-\begin{figure}[h!]
-    \centering
-    \begin{tabular}{ccc} % Two columns
-        % First row
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fimg1.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fimg2.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fflow.png}\\ 
-        
-        % Second row
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fimg11.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/ffimg12.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fflow2.png}\\ 
-
-         % Second row
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/ffimg21.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fimg22.png} & 
-        \includegraphics[width=0.12\textwidth]{Reports/4-Final-Report/images/flow_outputs/fflow3.png}\\ 
-    \end{tabular}
-    \caption{Model odometry output vizualizations.}
-    \label{fig:odom_flow}
-\end{figure}
-
 \clearpage
 \section{Future work and Limitations (1 page)}
-Our work takes promising steps towards addressing the current limitations of visual-LiDAR odometry, but it does currently have some drawbacks of its own. We detail some of the key problems we hope to address in future works.
 \textbf{Projection Issues}
 One major limitation of our approach lies in the projection of 3D 360-degree LiDAR points onto a 2D image plane. This process inherently results in the loss of valuable information, as LiDAR points outside the camera's field of view are ignored. While this method provides direct correspondences between LiDAR points and image pixels, it neglects the rich spatial context of unprojected points. Future work could explore strategies to better leverage the full 3D point cloud, potentially through 3D feature learning or hybrid representations that combine 2D and 3D modalities.
 
@@ -876,11 +619,11 @@ Visual-LiDAR odometry, especially in its application to autonomous vehicles, rai
 \section{Team member contributions}
 \paragraph{Pujith Kachana} contributed the proposed model architecture. Wrote the dataloading and processing code, the flow prediction code, the model and training code, the visualization code, and trained the model checkpoint. Wrote the proposed model, limitations, and ethical concerns section, and contributed to writing of introduction, related works, baselines, results, and analysis sections.
 
-\paragraph{Shashwat Chawla} contributed to the ideation of the project and design of the proposed model architecture, implemented the initial lidar projection pipeline for model training, helped in debugging the model decoder, and developed the KITTI evaluation and preprocessing code along with visualization plots. Also contributed to the Results, Analysis, and Future Work sections of the report.
+\paragraph{Shashwat Chawla} contributed ...
 
-\paragraph{Ming-Fong Li} contributed to setting up the report, training code, introductions, literatutre review, evaluations codes and model implementations.
+\paragraph{Ming-Fong Li} contributed ...
 
-\paragraph{Yatharth Ahuja} contributed to model brainstorming, baseline analysis and exploration, literature review, problem setup, prediction evaluation, and visulaizations. Also worked on setting up the report and evaluation codes.
+\paragraph{Yatharth Ahuja} contributed ...
 
 % Please use 
 \bibliographystyle{acl_natbib}
