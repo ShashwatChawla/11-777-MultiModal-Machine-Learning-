@@ -23,7 +23,7 @@ class OdometryDataset():
         # self.len_list = [0, 4541, 5642, 10303, 11104, 11375, 14136, 15237, 16338, 20409, 22000, 23201] 
         
         # Update length list to acccording to pcs/images in each of the sequence 
-        self.len_list = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100] 
+        self.len_list = [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]
         self.file_map = ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09', '10']
 
         self.T_trans = np.array([[0, 0, 1, 0],
@@ -39,7 +39,20 @@ class OdometryDataset():
             np.random.seed(self.random_seed)
 
         for seq_idx, seq_num in enumerate(self.len_list):
+            # TODO(@Shashwat): Hardcoded. Correct it
             if index < seq_num:
+                cur_idx_pc2 = index
+                if cur_idx_pc2 == 0:
+                    cur_idx_pc1 = 0
+                else:
+                    cur_idx_pc1 = cur_idx_pc2 - 1        ###############    1 frame gap  ###############   
+                
+                cur_seq = seq_idx - 1
+                if cur_seq < 0:
+                    cur_seq = 0
+                break        
+        
+                print(f"Index :{index}")
                 cur_seq = seq_idx - 1
                 if cur_seq < 0:
                     cur_seq = 0
@@ -49,8 +62,11 @@ class OdometryDataset():
                 else:
                     cur_idx_pc1 = cur_idx_pc2 - 1        ###############    1 frame gap  ###############   
                 break        
-        
-        Tr_path = os.path.join(self.calib_path, str(cur_seq).zfill(2), 'calib.txt')
+                
+        # TODO(@Shashwat): Make it work for multiple calib
+        calib_path = os.path.join(self.calib_path, self.file_map[cur_seq], 'calib.txt')
+        # print(f"calib_path :{calib_path}")
+        Tr_path = calib_path
         Tr_data = self.read_calib_file(Tr_path)
         # TODO(@Shashwat): Parametrize
         # Note: Currently using img_2 which corresponds to left_img i.e P0. Change accordingly.
@@ -67,6 +83,8 @@ class OdometryDataset():
         pc2_bin = os.path.join(cur_lidar_dir, 'velodyne/' + str(cur_idx_pc2).zfill(6) + '.bin')
         im1_png = os.path.join(cur_image_dir, 'image_2/' + str(cur_idx_pc1).zfill(6) + '.png')
         im2_png = os.path.join(cur_image_dir, 'image_2/' + str(cur_idx_pc2).zfill(6) + '.png')
+
+        # print(im2_png)
 
         pose = np.load(GT_POSE_PTH + self.file_map[cur_seq] + '_diff.npy')
 
@@ -166,7 +184,7 @@ class OdometryDataset():
         return img2, img1, pos2, pos1, q_gt, t_gt, P_left_cam
 
     def __len__(self):
-        return len(self.lidar_path)
+        return sum(self.len_list)
 
     def feed_random(self, random_seed):
         self.random_seed = random_seed

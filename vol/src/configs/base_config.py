@@ -155,11 +155,12 @@ class BaseConfig:
 
 class KittiConfig:
     def __init__(self):
-        self.vol_checkpoint = '/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints/2024_12_12-19_27_43/model_step_0.pt'
-        self.batch_size = 4
+        # self.vol_checkpoint = '/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/checkpoints/2024_12_12-19_27_43/model_step_0.pt'
+        self.vol_checkpoint = '/ocean/projects/cis220039p/shared/vol/model_step_49000.pt'
+        self.batch_size = 50    
         self.vol_input_shape = (3, 640, 640)
         # Logging Arguments
-        self.project_name = 'VOL-KITTI'
+        self.project_name = 'VOL-KITTI-Evaluation'
         self.log_imgs = True
 
         # Data Directories
@@ -168,4 +169,4 @@ class KittiConfig:
         self.lidar_dir ='/ocean/projects/cis220039p/shared/datasets/KITTI_odometry/velodyne/dataset/sequences'
 
         # KITTI Sequences to Evaluate
-        self.sequences = [6]
+        self.sequences = [10]

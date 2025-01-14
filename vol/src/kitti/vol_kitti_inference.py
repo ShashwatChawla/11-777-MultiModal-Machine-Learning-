@@ -3,6 +3,9 @@ sys.path.append('/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-L
 import torch
 import torch.nn.functional as F
 
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
 import wandb
 from tqdm import tqdm
 
@@ -129,7 +132,6 @@ def load_sequences(kitti_config):
     """
         Load KITTI Sequences
     """
-    print(kitti_config.calib_dir)
     dataset = OdometryDataset(
         calib_path=kitti_config.calib_dir,
         image_path=kitti_config.image_dir,
@@ -141,7 +143,7 @@ def load_sequences(kitti_config):
     dataset.len_list = [dataset.len_list[i] for i in kitti_config.sequences]
 
     # DataLoader for evaluation
-    return torch.utils.data.DataLoader(dataset, batch_size=10, shuffle=False)
+    return torch.utils.data.DataLoader(dataset, batch_size=kitti_config.batch_size, shuffle=False)
 
 
 def main():
@@ -162,19 +164,49 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
+    seq_= str(kitti_config.sequences[0])
+    print(f"Seq :{seq_}")
+    file_name = '/ocean/projects/cis220039p/schawla1/11-777-MultiModal-Machine-Learning-/vol/src/kitti/vol-output/' + seq_ + '.txt'
+
     print("[INFO] KITTI Evaluation Started")
     with torch.no_grad():
+        iteration_ = 0
+        avg_total_loss = 0
+        avg_trans_loss = 0
+        avg_rot_loss = 0
         for data in tqdm(kitti_loader, desc="Processing", unit="batch"):
             data = preprocess_data(data, device, kitti_config)
 
             output = model(data)
+
+            rot = output['rotation'][0]  # Shape: (N, 4) (quaternion)
+            trans = output['translation'][0]  # Shape: (N, 3) (translation)
+
+            # Assuming 'rot' and 'trans' are tensors, convert them to NumPy arrays
+            rot = rot.detach().cpu().numpy()  # Convert rotation (quaternion) to NumPy
+            trans = trans.detach().cpu().numpy()  # Convert translation to NumPy
+
+            # Open the file in append mode
+            with open(file_name, 'a') as f:
+                # Convert quaternion to rotation matrix
+                rotation_matrix = R.from_quat(rot).as_matrix()  # 3x3 rotation matrix
+                translation_vector = trans.reshape(3, 1)        # 3x1 translation vector
+
+                # Combine rotation and translation into a 4x3 matrix
+                transformation_matrix = np.hstack((rotation_matrix, translation_vector))  # 4x3 matrix
+
+                # Flatten the matrix to a 1x12 row and write to the file
+                flattened_matrix = transformation_matrix.flatten()  # Flatten to 1x12
+                f.write(" ".join(f"{x:.8f}" for x in flattened_matrix) + "\n")
+            
+            print(f"Batch {iteration_} processed.")
 
             loss = compute_loss(
                                 output['rotation'], 
                                 data['rotations'], 
                                 output['translation'], 
                                 data['translations'],
-                                alpha=config.loss_alpha)
+                                    alpha=config.loss_alpha)
 
             # Log Images
             if kitti_config.log_imgs:
@@ -188,14 +220,35 @@ def main():
             
             # Log losses
             logger.log({
-                        "total_loss": loss['total_loss'],
-                        "translation_loss": loss['translation_loss'],
-                        "rotation_loss": loss['rotation_loss']
+                        # "total_loss": loss['total_loss'],
+                        "translation_error": loss['translation_loss'],
+                        "rotation_error": loss['rotation_loss']
+                        })
+            
+          
+            avg_total_loss = (avg_total_loss*iteration_ + loss['total_loss'])/(iteration_ + 1) 
+            avg_trans_loss = (avg_trans_loss*iteration_ + loss['translation_loss'])/(iteration_ + 1)
+            avg_rot_loss = (avg_rot_loss*iteration_ + loss['rotation_loss'])/(iteration_ + 1)
+            iteration_ = iteration_ + 1
+            logger.log({
+                        # "avg_total_loss": avg_total_loss,
+                        "avg_translation_error": avg_trans_loss,
+                        "avg_rotation_error": avg_rot_loss
                         })
             
 
-            # print(f"Rotation Loss: {loss['rotation_loss']:.4f}, Translation Loss: {loss['translation_loss']:.4f}")
+            
+            
+            print(f"Rotation Loss: {loss['rotation_loss']:.4f}, Translation Loss: {loss['translation_loss']:.4f}")
+            # print(f"Avg Rotation Loss: {avg_rot_loss}, Avg Translation Loss: {avg_total_loss}, Avg loss :{avg_total_loss}")
 
+        # logger.log({
+        #             "Final avg_loss": avg_total_loss,
+        #             "Final avg_trans_loss": avg_trans_loss, 
+        #             "Final avg_rot_loss": avg_rot_loss,
+        #             "Total iterations_" : iteration_ 
+        #             }
+        #             )
     print("[INFO] KITTI Evaluation Complete")
 
 if __name__ == '__main__':
